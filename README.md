@@ -58,3 +58,9 @@ Install dependencies
 
 Start Server
 `python main.py`
+
+## Roadmap:
+
+Add Follow and Subscription alerts
+Improve emotes to display animated emotes
+More user interactions
