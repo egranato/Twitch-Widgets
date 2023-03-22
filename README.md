@@ -31,7 +31,7 @@ Navigate to folder
 Install dependencies
 `npm i`
 
-Add environment variables
+Create `.env` and add environment variables
 
 ```
 BOT_USERNAME=
@@ -62,5 +62,7 @@ Start Server
 ## Roadmap:
 
 Add Follow and Subscription alerts
+
 Improve emotes to display animated emotes
+
 More user interactions
