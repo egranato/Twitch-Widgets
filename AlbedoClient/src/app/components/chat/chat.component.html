@@ -1,0 +1,22 @@
+<div class="chat-holster" [ngClass]="chatModifiers.classes()">
+  <div class="picture-shadow"></div>
+  <div class="chat-line-item" *ngFor="let message of chatHistory">
+    <div class="user-image">
+      <img
+        *ngIf="message.userImage"
+        [src]="message.userImage"
+        alt="User Image"
+      />
+    </div>
+    <div
+      *ngIf="!chatModifiers.scramble"
+      class="message-content"
+      [innerHTML]="message.messageHTML"
+    ></div>
+    <div
+      *ngIf="chatModifiers.scramble"
+      class="message-content"
+      [innerHTML]="shuffleText(message.messageHTML)"
+    ></div>
+  </div>
+</div>
