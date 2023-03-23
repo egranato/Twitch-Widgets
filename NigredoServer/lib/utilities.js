@@ -6,6 +6,50 @@ const path = require("path");
 // session storage so I don't have to remake calls
 const userImagesMap = {};
 let appToken = null;
+let badges = null;
+
+const getGobalBadges = () => {
+  const url = "https://api.twitch.tv/helix/chat/badges/global";
+  getAppCreds()
+    .then((token) => {
+      return axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Client-Id": process.env.CLIENT_ID,
+        },
+      });
+    })
+    .then(({ data }) => {
+      badges = data.data;
+    });
+};
+
+const getBadge = (id, version) => {
+  const binarySearch = (arr, x) => {
+    const mid = Math.floor(arr.length / 2);
+    if (arr.length === 1) {
+      return arr[mid].set_id === x ? arr[mid].versions : null;
+    }
+    if (arr[mid].set_id === x) {
+      return arr[mid].versions;
+    }
+
+    if (arr[mid].set_id > x) {
+      const half = arr.slice(0, mid);
+      return binarySearch(half, x);
+    } else {
+      const half = arr.slice(mid + 1, arr.length);
+      return binarySearch(half, x);
+    }
+  };
+
+  const badgeSet = binarySearch(badges, id);
+  if (badgeSet === null) {
+    return null;
+  }
+  const ver = badgeSet.find((v) => v.id == version);
+  return ver.image_url_2x; // image_url_2x; image_url_4x; for bigger
+};
 
 const getLatestVersion = () => {
   const sourceDir = path.resolve("../AlbedoClient/dist/albedo-client");
@@ -87,67 +131,77 @@ const getUserImage = (userId) => {
   });
 };
 
-const makeEmoteMap = (id, firstOccurance, message) => {
-  const result = {
-    id,
-    emoteUrl: `https://static-cdn.jtvnw.net/emoticons/v2/${id}/static/light/2.0`, //1.0,3.0 for smaller/bigger
-  };
-
-  const map = firstOccurance.split("-");
-  const start = Number(map.shift());
-  const end = Number(map.shift()) + 1;
-  result.textToReplace = message.slice(start, end);
-
+const generateEmotePlaceHolder = (index, length) => {
+  let result = `${index}`;
+  while (result.length < length) {
+    result = "0" + result;
+  }
   return result;
 };
 
-const formatMessageData = (data, message) => {
-  return new Promise((resolve, reject) => {
-    const result = {
-      userId: data["user-id"],
-      displayName: data["display-name"],
-      badges: data.badges,
-      color: data.color,
-      mod: data.mod,
-      firstMsg: data["first-msg"],
-      subscriber: data.subscriber,
-      returningChatter: data["returning-chatter"],
-      messageType: data["message-type"],
-      message: message,
-    };
-
+const formatMessage = (message, emotes) => {
+  if (emotes) {
+    let result = message;
     const emoteMap = [];
-    if (data.emotes !== null) {
-      Object.keys(data.emotes).forEach((emoteId) => {
-        emoteMap.push(makeEmoteMap(emoteId, data.emotes[emoteId][0], message));
-      });
-    }
+    Object.keys(emotes).forEach((emoteId, index) => {
+      const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/static/light/1.0`; // 2.0,3.0 for bigger
+      const map = {
+        html: `<img src="${emoteUrl}" alt="Emote-${emoteId}" />`,
+      };
 
-    result.messageHTML = message;
-    emoteMap.forEach((map) => {
-      const regExp = new RegExp(map.textToReplace, "g");
-      result.messageHTML = result.messageHTML.replace(
-        regExp,
-        `<img src="${map.emoteUrl}" alt="Emote-${map.id}" />`
-      );
+      emotes[emoteId].forEach((inst) => {
+        const params = inst.split("-");
+        const start = Number(params.shift());
+        const end = Number(params.shift()) + 1;
+        const length = end - start;
+        map.placeholder = generateEmotePlaceHolder(index, length);
+        result =
+          result.substring(0, start) + map.placeholder + result.substring(end);
+      });
+
+      emoteMap.push(map);
     });
-    result.messageHTML = result.messageHTML.replace(/\s\s+/g, " ");
 
-    getUserImage(result.userId)
-      .then((userImage) => {
-        result.userImage = userImage;
-        resolve(result);
-      })
-      .catch((error) => {
-        console.log(error);
-        result.userImage = null;
-        resolve(result);
-      });
-  });
+    emoteMap.forEach((emote) => {
+      const regex = new RegExp(emote.placeholder, "g");
+      result = result.replace(regex, emote.html);
+    });
+
+    return result.replace(/\s\s+/g, " ");
+  }
+
+  return message;
+};
+
+const formatMessageData = (data, message) => {
+  const result = {
+    userId: data["user-id"],
+    displayName: data["display-name"],
+    color: data.color,
+    mod: data.mod,
+    firstMsg: data["first-msg"],
+    subscriber: data.subscriber,
+    returningChatter: data["returning-chatter"],
+    messageType: data["message-type"],
+    message: formatMessage(message, data.emotes),
+    badges: "",
+  };
+
+  if (data.badges) {
+    Object.keys(data.badges).forEach((b) => {
+      const url = getBadge(b, data.badges[b]);
+      if (url !== null) {
+        result.badges += `<img src="${url}" alt="${b}-badge" /> `;
+      }
+    });
+  }
+
+  return result;
 };
 
 module.exports = {
   runRandomly,
   formatMessageData,
+  getGobalBadges,
   getLatestVersion,
 };

@@ -20,18 +20,7 @@ export class SocketService {
     this.socket = io('ws://localhost:3000');
 
     this.socket.on('message', (message: MessageEvent) => {
-      console.log(message);
       this.messageEventSubject.next(message);
     });
-  }
-
-  finishAuth(authMap: any) {
-    if (this.socket.connected) {
-      this.socket.emit('finishAuth', authMap);
-    } else {
-      setTimeout(() => {
-        this.finishAuth(authMap);
-      }, 500);
-    }
   }
 }

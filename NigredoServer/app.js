@@ -9,6 +9,7 @@ const path = require("path");
 
 // get newest FE widgets build
 utilities.getLatestVersion();
+utilities.getGobalBadges();
 
 // socket server to talk to widgets and tts client
 const io = new socketio.Server(server, {
@@ -24,12 +25,8 @@ io.on("connection", (client) => {
 twitchBot.on("message", (channel, data, message, self) => {
   if (self) return;
   // send chat messages to clients
-  utilities.formatMessageData(data, message).then((messageEvent) => {
-    io.emit("message", messageEvent);
-    // utilities.runRandomly(50, () => {
-    //   twitchBot.say(channel, "Use !bounce ");
-    // });
-  });
+  const messageEvent = utilities.formatMessageData(data, message);
+  io.emit("message", messageEvent);
 });
 
 twitchBot.on(
