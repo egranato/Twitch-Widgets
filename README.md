@@ -66,3 +66,7 @@ Add Follow and Subscription alerts
 Improve emotes to display animated emotes
 
 More user interactions
+
+Add channel specific badges
+
+Make into .exe for ease of use
