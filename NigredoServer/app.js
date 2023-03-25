@@ -1,47 +1,140 @@
 require("dotenv").config();
 const express = require("express");
-const app = express();
-const server = require("http").createServer(app);
+const WebSocketClient = require("websocket").client;
 const socketio = require("socket.io");
 const twitchBot = require("./lib/tmi-bot");
 const utilities = require("./lib/utilities");
 const path = require("path");
+const cors = require("cors");
+const fs = require("fs");
+
+const app = express();
+const server = require("http").createServer(app);
+// cors for when angular is running in development
+app.use(
+  cors({
+    origin: "http://localhost:4200",
+  })
+);
 
 // get newest FE widgets build
 utilities.getLatestVersion();
-utilities.getGobalBadges();
+utilities
+  .getAppCreds()
+  .then((appToken) => {
+    return Promise.all([
+      utilities.getUserData(appToken),
+      utilities.getGobalBadges(appToken),
+      appToken,
+    ]);
+  })
+  .then(([user, globalBadges, appToken]) => {
+    // socket server to talk to widgets and tts client
+    const io = new socketio.Server(server, {
+      cors: {
+        origin: "http://localhost:4200",
+      },
+    });
 
-// socket server to talk to widgets and tts client
-const io = new socketio.Server(server, {
-  cors: {
-    origin: "http://localhost:4200",
-  },
+    io.on("connection", (connection) => {
+      console.log("IO Client Connected!");
+    });
+
+    twitchBot.on("message", (channel, data, message, self) => {
+      if (self) return;
+      // send chat messages to clients
+      const messageEvent = utilities.formatMessageData(
+        data,
+        message,
+        globalBadges
+      );
+      io.emit("message", messageEvent);
+    });
+
+    twitchBot.on(
+      "subscription",
+      (channel, username, methods, message, userstate) => {
+        console.log({ channel, username, methods, message, userstate });
+      }
+    );
+
+    // twitchBot.on("emotesets", (sets, obj) => {
+    //   console.log(sets);
+    //   console.log(obj);
+    // });
+
+    // set up twitch pubsub socket
+    const twitchClient = new WebSocketClient();
+    twitchClient.on("connectFailed", function (error) {
+      console.log("Twitch Connect Error: " + error.toString());
+    });
+
+    twitchClient.on("connect", (connection) => {
+      console.log("Twitch Client Connected");
+
+      connection.on("error", (error) => {
+        console.log("Twitch Connection Error: " + error.toString());
+      });
+
+      connection.on("close", () => {
+        console.log("Twitch Connection Closed");
+      });
+
+      connection.on("message", (message) => {
+        if (message.type === "utf8") {
+          const messageData = JSON.parse(message.utf8Data);
+          if (
+            messageData.metadata.message_type === "notification" &&
+            messageData.metadata.subscription_type === "channel.follow"
+          ) {
+            io.emit("follow", messageData.payload.event.user_name);
+          } else if (messageData.metadata.message_type === "session_welcome") {
+            const sessionId = messageData.payload.session.id;
+            if (!fs.existsSync("user-creds.json")) {
+              console.log("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
+              return;
+            }
+            const userCreds = JSON.parse(
+              fs.readFileSync("user-creds.json").toString()
+            );
+
+            utilities
+              .subscribeToFollow(userCreds.access_token, sessionId, user.id)
+              .then((_) => {
+                console.log("Twitch Client Subscribed to Follow Events");
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+          }
+        }
+      });
+    });
+
+    twitchClient.connect("wss://eventsub-beta.wss.twitch.tv/ws");
+  });
+
+// serve angular widgets for OBS
+// cors is for development when angular is not running on 3000
+app.get("/api/client-id", (req, res) => {
+  res.send({ clientId: process.env.CLIENT_ID });
 });
-
-io.on("connection", (client) => {
-  console.log("IO Client Connected!");
+app.get("/api/authreturn", (req, res) => {
+  const { code } = req.query;
+  utilities
+    .getUserCreds(code)
+    .then((_) => {
+      res.send(`<h1>Good to go!</h1>`);
+    })
+    .catch((error) => {
+      res.send(`
+        <h1>Error!</h1>
+        <p>code: ${error.code}</p>
+        <p>status: ${error.status}</p>
+        <p>message: ${error.message}</p>
+      `);
+    });
 });
-
-twitchBot.on("message", (channel, data, message, self) => {
-  if (self) return;
-  // send chat messages to clients
-  const messageEvent = utilities.formatMessageData(data, message);
-  io.emit("message", messageEvent);
-});
-
-twitchBot.on(
-  "subscription",
-  (channel, username, methods, message, userstate) => {
-    console.log({ channel, username, methods, message, userstate });
-  }
-);
-
-// twitchBot.on("emotesets", (sets, obj) => {
-//   console.log(sets);
-//   console.log(obj);
-// });
-
-// server angular widgets for OBS
 app.use(express.static("public/"));
 app.get("*", (req, res) => {
   res.sendFile(path.resolve("public/index.html"));

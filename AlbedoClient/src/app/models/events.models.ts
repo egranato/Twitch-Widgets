@@ -10,3 +10,8 @@ export interface MessageEvent {
   messageType: string;
   message: string;
 }
+
+export interface AlertEvent {
+  displayName: string;
+  type: string;
+}

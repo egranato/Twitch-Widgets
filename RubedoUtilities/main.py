@@ -20,7 +20,7 @@ async def disconnect():
 
 @sio.on("message")
 async def on_message(data):
-    raw_text = data['message']
+    raw_text = data['rawMessage']
     clean_text = tts.clean_text(raw_text)
     tts.speak_text(clean_text)
 

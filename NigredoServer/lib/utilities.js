@@ -2,29 +2,79 @@ require("dotenv").config();
 const axios = require("axios").default;
 const fs = require("fs");
 const path = require("path");
+const querystring = require("querystring");
 
-// session storage so I don't have to remake calls
-const userImagesMap = {};
-let appToken = null;
-let badges = null;
+const getUserCreds = (authCode) => {
+  return new Promise((resolve, reject) => {
+    const url = "https://id.twitch.tv/oauth2/token";
+    const body = {
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      code: authCode,
+      grant_type: "authorization_code",
+      redirect_uri: "http://localhost:3000/api/authreturn",
+    };
+    axios
+      .post(url, querystring.stringify(body))
+      .then(({ data }) => {
+        fs.writeFileSync("user-creds.json", JSON.stringify(data));
+        resolve(true);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
 
-const getGobalBadges = () => {
-  const url = "https://api.twitch.tv/helix/chat/badges/global";
-  getAppCreds()
-    .then((token) => {
-      return axios.get(url, {
+const subscribeToFollow = (token, sessionId, userId) => {
+  return new Promise((resolve, reject) => {
+    const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+    const body = {
+      type: "channel.follow",
+      version: "2",
+      condition: {
+        broadcaster_user_id: userId,
+        moderator_user_id: userId,
+      },
+      transport: {
+        method: "websocket",
+        session_id: sessionId,
+      },
+    };
+    const options = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Client-Id": process.env.CLIENT_ID,
+        "Content-Type": "application/json",
+      },
+    };
+    axios
+      .post(url, body, options)
+      .then(({ data }) => resolve(data))
+      .catch(reject);
+  });
+};
+
+const getGobalBadges = (token) => {
+  return new Promise((resolve, reject) => {
+    const url = "https://api.twitch.tv/helix/chat/badges/global";
+    axios
+      .get(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Client-Id": process.env.CLIENT_ID,
         },
+      })
+      .then(({ data }) => {
+        resolve(data.data);
+      })
+      .catch((error) => {
+        reject(error);
       });
-    })
-    .then(({ data }) => {
-      badges = data.data;
-    });
+  });
 };
 
-const getBadge = (id, version) => {
+const getBadge = (id, version, badges) => {
   const binarySearch = (arr, x) => {
     const mid = Math.floor(arr.length / 2);
     if (arr.length === 1) {
@@ -78,28 +128,24 @@ const runRandomly = (rarity, callback) => {
 
 const getAppCreds = () => {
   return new Promise((resolve, reject) => {
-    if (appToken === null) {
-      const url = "https://id.twitch.tv/oauth2/token";
-      let body = new URLSearchParams();
-      body.set("client_id", process.env.CLIENT_ID);
-      body.set("client_secret", process.env.CLIENT_SECRET);
-      body.set("grant_type", "client_credentials");
-      axios
-        .post(url, body, {
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        })
-        .then((result) => {
-          appToken = result.data.access_token;
-          resolve(appToken);
-        })
-        .catch((error) => {
-          reject(error);
-        });
-    } else {
-      resolve(appToken);
-    }
+    const url = "https://id.twitch.tv/oauth2/token";
+    let body = new URLSearchParams();
+    body.set("client_id", process.env.CLIENT_ID);
+    body.set("client_secret", process.env.CLIENT_SECRET);
+    body.set("grant_type", "client_credentials");
+    axios
+      .post(url, body, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      })
+      .then((result) => {
+        appToken = result.data.access_token;
+        resolve(appToken);
+      })
+      .catch((error) => {
+        reject(error);
+      });
   });
 };
 
@@ -128,6 +174,26 @@ const getUserImage = (userId) => {
           reject(error);
         });
     }
+  });
+};
+
+const getUserData = (token) => {
+  return new Promise((resolve, reject) => {
+    const url = `https://api.twitch.tv/helix/users?login=${process.env.BOT_CHANNEL}`;
+    const options = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Client-Id": process.env.CLIENT_ID,
+      },
+    };
+    axios
+      .get(url, options)
+      .then(({ data }) => {
+        resolve(data.data[0]);
+      })
+      .catch((error) => {
+        reject(error);
+      });
   });
 };
 
@@ -173,7 +239,7 @@ const formatMessage = (message, emotes) => {
   return message;
 };
 
-const formatMessageData = (data, message) => {
+const formatMessageData = (data, message, badges) => {
   const result = {
     userId: data["user-id"],
     displayName: data["display-name"],
@@ -184,12 +250,13 @@ const formatMessageData = (data, message) => {
     returningChatter: data["returning-chatter"],
     messageType: data["message-type"],
     message: formatMessage(message, data.emotes),
+    rawMessage: message,
     badges: "",
   };
 
   if (data.badges) {
     Object.keys(data.badges).forEach((b) => {
-      const url = getBadge(b, data.badges[b]);
+      const url = getBadge(b, data.badges[b], badges);
       if (url !== null) {
         result.badges += `<img src="${url}" alt="${b}-badge" /> `;
       }
@@ -200,8 +267,11 @@ const formatMessageData = (data, message) => {
 };
 
 module.exports = {
-  runRandomly,
   formatMessageData,
+  getAppCreds,
   getGobalBadges,
   getLatestVersion,
+  getUserData,
+  subscribeToFollow,
+  getUserCreds,
 };
