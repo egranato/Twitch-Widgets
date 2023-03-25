@@ -61,11 +61,15 @@ Start Server
 
 ## Roadmap:
 
-Add Follow and Subscription alerts
+Add better event logging in console
+
+Animate Follow Alerts
+
+Add Subscription alerts
 
 Improve emotes to display animated emotes
 
-More user interactions
+Channel Point Redemptions
 
 Add channel specific badges
 
