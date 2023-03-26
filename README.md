@@ -61,10 +61,6 @@ Start Server
 
 ## Roadmap:
 
-Add better event logging in console
-
-Animate Follow Alerts
-
 Add Subscription alerts
 
 Improve emotes to display animated emotes
