@@ -1,7 +1,6 @@
 require("dotenv").config();
 const axios = require("axios").default;
 const fs = require("fs");
-const path = require("path");
 const querystring = require("querystring");
 
 const getUserCreds = (authCode) => {
@@ -17,6 +16,7 @@ const getUserCreds = (authCode) => {
     axios
       .post(url, querystring.stringify(body))
       .then(({ data }) => {
+        // using a raw file because this app is not intended to ever be hosted on a server and only used locally, might ecrpyt eventually
         fs.writeFileSync("user-creds.json", JSON.stringify(data));
         resolve(true);
       })
@@ -99,19 +99,6 @@ const getBadge = (id, version, badges) => {
   }
   const ver = badgeSet.find((v) => v.id == version);
   return ver.image_url_2x; // image_url_2x; image_url_4x; for bigger
-};
-
-const getLatestVersion = () => {
-  const sourceDir = path.resolve("../AlbedoClient/dist/albedo-client");
-  const destinationDir = path.resolve("public");
-
-  const newFiles = fs.readdirSync(sourceDir);
-  newFiles.forEach((file) => {
-    const ogPath = path.join(sourceDir, file);
-    const newPath = path.join(destinationDir, file);
-
-    fs.copyFileSync(ogPath, newPath);
-  });
 };
 
 const getRandom = (min, max) => {

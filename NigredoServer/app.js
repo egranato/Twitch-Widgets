@@ -18,11 +18,11 @@ app.use(
   })
 );
 
-// get newest FE widgets build
-// utilities.getLatestVersion();
+// get global items that will be nessicary for functioning later
 utilities
   .getAppCreds()
   .then((appToken) => {
+    // carry app token across incase it's needed later
     return Promise.all([
       utilities.getUserData(appToken),
       utilities.getGobalBadges(appToken),
