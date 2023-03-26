@@ -4,6 +4,7 @@ const WebSocketClient = require("websocket").client;
 const socketio = require("socket.io");
 const twitchBot = require("./lib/tmi-bot");
 const utilities = require("./lib/utilities");
+const logger = require("./lib/logger");
 const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
@@ -18,7 +19,7 @@ app.use(
 );
 
 // get newest FE widgets build
-utilities.getLatestVersion();
+// utilities.getLatestVersion();
 utilities
   .getAppCreds()
   .then((appToken) => {
@@ -37,7 +38,7 @@ utilities
     });
 
     io.on("connection", (connection) => {
-      console.log("IO Client Connected!");
+      logger.info("IO Client Connected!");
     });
 
     twitchBot.on("message", (channel, data, message, self) => {
@@ -66,18 +67,18 @@ utilities
     // set up twitch pubsub socket
     const twitchClient = new WebSocketClient();
     twitchClient.on("connectFailed", function (error) {
-      console.log("Twitch Connect Error: " + error.toString());
+      logger.info("Twitch Connect Error: " + error.toString());
     });
 
     twitchClient.on("connect", (connection) => {
-      console.log("Twitch Client Connected");
+      logger.info("Twitch Client Connected");
 
       connection.on("error", (error) => {
-        console.log("Twitch Connection Error: " + error.toString());
+        logger.error("Twitch Connection Error: " + error.toString());
       });
 
       connection.on("close", () => {
-        console.log("Twitch Connection Closed");
+        logger.warning("Twitch Connection Closed");
       });
 
       connection.on("message", (message) => {
@@ -90,10 +91,12 @@ utilities
             io.emit("follow", messageData.payload.event.user_name);
           } else if (messageData.metadata.message_type === "session_welcome") {
             const sessionId = messageData.payload.session.id;
+
             if (!fs.existsSync("user-creds.json")) {
-              console.log("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
+              logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
               return;
             }
+
             const userCreds = JSON.parse(
               fs.readFileSync("user-creds.json").toString()
             );
@@ -101,10 +104,10 @@ utilities
             utilities
               .subscribeToFollow(userCreds.access_token, sessionId, user.id)
               .then((_) => {
-                console.log("Twitch Client Subscribed to Follow Events");
+                logger.info("Twitch Client Subscribed to Follow Events");
               })
               .catch((error) => {
-                console.log(error);
+                logger.error(error);
               });
           }
         }
