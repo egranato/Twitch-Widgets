@@ -46,7 +46,7 @@ Start Server
 
 ## Rubedo Utilities (Python)
 
-Currently only censors chat and speaks it aloud
+Censors chat and speaks it aloud and plays alert sounds
 
 ### Setup
 
