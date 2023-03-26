@@ -77,8 +77,6 @@ Run update script
 
 ## Roadmap:
 
-- Add re-auth flow for when OAuth2 token expires
-
 - Add Subscription alerts
 
 - Improve emotes to display animated emotes

@@ -26,6 +26,28 @@ const getUserCreds = (authCode) => {
   });
 };
 
+const refreshUserCreds = (refreshToken) => {
+  return new Promise((resolve, reject) => {
+    const url = "https://id.twitch.tv/oauth2/token";
+    const body = {
+      client_id: process.env.CLIENT_ID,
+      client_secret: process.env.CLIENT_SECRET,
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    };
+    axios
+      .post(url, querystring.stringify(body))
+      .then(({ data }) => {
+        // using a raw file because this app is not intended to ever be hosted on a server and only used locally, might ecrpyt eventually
+        fs.writeFileSync("user-creds.json", JSON.stringify(data));
+        resolve(true);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
 const subscribeToFollow = (token, sessionId, userId) => {
   return new Promise((resolve, reject) => {
     const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
@@ -257,8 +279,8 @@ module.exports = {
   formatMessageData,
   getAppCreds,
   getGobalBadges,
-  getLatestVersion,
   getUserData,
   subscribeToFollow,
   getUserCreds,
+  refreshUserCreds,
 };

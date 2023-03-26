@@ -66,6 +66,37 @@ utilities
 
     // set up twitch pubsub socket
     const twitchClient = new WebSocketClient();
+    const subscribeToFollow = (sessionId) => {
+      if (!fs.existsSync("user-creds.json")) {
+        logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
+        return;
+      }
+
+      const userCreds = JSON.parse(
+        fs.readFileSync("user-creds.json").toString()
+      );
+
+      utilities
+        .subscribeToFollow(userCreds.access_token, sessionId, user.id)
+        .then((_) => {
+          logger.info("Twitch Client Subscribed to Follow Events");
+        })
+        .catch((error) => {
+          if (error.response.status === 401) {
+            utilities
+              .refreshUserCreds(userCreds.refresh_token)
+              .then((_) => {
+                logger.info("Refreshed OAuth Token");
+                subscribeToFollow(sessionId);
+              })
+              .catch((error) => {
+                logger.error(error);
+              });
+          } else {
+            logger.error(error);
+          }
+        });
+    };
     twitchClient.on("connectFailed", function (error) {
       logger.info("Twitch Connect Error: " + error.toString());
     });
@@ -91,24 +122,7 @@ utilities
             io.emit("follow", messageData.payload.event.user_name);
           } else if (messageData.metadata.message_type === "session_welcome") {
             const sessionId = messageData.payload.session.id;
-
-            if (!fs.existsSync("user-creds.json")) {
-              logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
-              return;
-            }
-
-            const userCreds = JSON.parse(
-              fs.readFileSync("user-creds.json").toString()
-            );
-
-            utilities
-              .subscribeToFollow(userCreds.access_token, sessionId, user.id)
-              .then((_) => {
-                logger.info("Twitch Client Subscribed to Follow Events");
-              })
-              .catch((error) => {
-                logger.error(error);
-              });
+            subscribeToFollow(sessionId);
           }
         }
       });
