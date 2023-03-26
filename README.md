@@ -59,6 +59,22 @@ Install dependencies
 Start Server
 `python main.py`
 
+## First Time Set Up
+
+### Get latest widget code
+
+Navigate to folder
+`cd NigredoServer`
+
+Run update script
+`npm run update`
+
+### Run Auth Flow
+
+- Start NigredoServer (see above)
+- Navigate to `http://localhost:3000/auth` in a browser
+- Authorize With Twitch
+
 ## Roadmap:
 
 Add re-auth flow for when OAuth2 token expires
