@@ -77,14 +77,14 @@ Run update script
 
 ## Roadmap:
 
-Add re-auth flow for when OAuth2 token expires
+- Add re-auth flow for when OAuth2 token expires
 
-Add Subscription alerts
+- Add Subscription alerts
 
-Improve emotes to display animated emotes
+- Improve emotes to display animated emotes
 
-Channel Point Redemptions
+- Channel Point Redemptions
 
-Add channel specific badges
+- Add channel specific badges
 
-Make into .exe for ease of use
+- Make into .exe for ease of use
