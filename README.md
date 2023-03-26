@@ -61,6 +61,10 @@ Start Server
 
 ## Roadmap:
 
+Add re-auth flow for when OAuth2 token expires
+
+Add option to play a sound in Rubedo when follows occur
+
 Add Subscription alerts
 
 Improve emotes to display animated emotes
