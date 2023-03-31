@@ -49,7 +49,13 @@ Start Server
 ### Get latest widget code
 
 Navigate to folder
-`cd NigredoServer`
+`cd AlbedoClient`
+
+Build newest widgets
+`ng build`
+
+Navigate to folder
+`cd ../NigredoServer`
 
 Run update script
 `npm run update`
@@ -69,5 +75,3 @@ Run update script
 - Add channel specific badges
 
 - Make into .exe for ease of use
-
-- Add option to read text aloud (tmp removed)

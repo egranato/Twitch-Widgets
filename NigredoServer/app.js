@@ -8,6 +8,7 @@ const logger = require("./lib/logger");
 const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
+const gtts = require("better-node-gtts").default;
 
 const app = express();
 const server = require("http").createServer(app);
@@ -47,6 +48,7 @@ utilities
     io.on("connection", (connection) => {
       logger.info("IO Client Connected!");
 
+      // tell twitch we've fulfilled the channel point reward
       connection.on("point-fulfill", ({ id, rewardId }) => {
         utilities
           .completeChannelPointRewardRequest(
@@ -56,6 +58,12 @@ utilities
             id
           )
           .catch(logger.error);
+      });
+
+      // delete tts generated mp3
+      connection.on("tts-complete", (id) => {
+        const filename = utilities.createMp3FileName(id);
+        fs.unlinkSync(filename);
       });
     });
 
@@ -68,6 +76,13 @@ utilities
         globalBadges
       );
       io.emit("message", messageEvent);
+
+      // tts
+      const filename = utilities.createMp3FileName(data.id);
+
+      gtts.save(filename, message).then(() => {
+        io.emit("tts-message", data.id);
+      });
     });
 
     twitchBot.on(

@@ -1,7 +1,12 @@
 require("dotenv").config();
 const axios = require("axios").default;
+const path = require("path");
 const fs = require("fs");
 const querystring = require("querystring");
+
+const createMp3FileName = (id) => {
+  return path.join(__dirname, "..", "public", "assets", "audio", id + ".mp3");
+};
 
 const getUserCreds = (authCode) => {
   return new Promise((resolve, reject) => {
@@ -290,6 +295,7 @@ const formatMessageData = (data, message, badges) => {
 };
 
 module.exports = {
+  createMp3FileName,
   formatMessageData,
   getAppCreds,
   getGobalBadges,

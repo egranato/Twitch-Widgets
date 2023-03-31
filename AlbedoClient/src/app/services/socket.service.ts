@@ -17,6 +17,9 @@ export class SocketService {
   private messageEventSubject: Subject<MessageEvent>;
   public messageEvent: Observable<MessageEvent>;
 
+  private ttsMessageEventSubject: Subject<string>;
+  public ttsMessageEvent: Observable<string>;
+
   private alertEventSubject: Subject<AlertEvent>;
   public alertEvent: Observable<AlertEvent>;
 
@@ -26,6 +29,9 @@ export class SocketService {
   constructor() {
     this.messageEventSubject = new Subject<MessageEvent>();
     this.messageEvent = this.messageEventSubject.asObservable();
+
+    this.ttsMessageEventSubject = new Subject<string>();
+    this.ttsMessageEvent = this.ttsMessageEventSubject.asObservable();
 
     this.alertEventSubject = new Subject<AlertEvent>();
     this.alertEvent = this.alertEventSubject.asObservable();
@@ -45,11 +51,18 @@ export class SocketService {
 
     this.socket.on('point-redeem', (event: RedemptionEvent) => {
       this.redemptionEventSubject.next(event);
-      console.log(event);
+    });
+
+    this.socket.on('tts-message', (event: string) => {
+      this.ttsMessageEventSubject.next(event);
     });
   }
 
   fulfillPointReward(id: string, rewardId: string): void {
     this.socket.emit('point-fulfill', { id, rewardId });
+  }
+
+  completeTTS(id: string): void {
+    this.socket.emit('tts-complete', id);
   }
 }
