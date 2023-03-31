@@ -48,12 +48,12 @@ const refreshUserCreds = (refreshToken) => {
   });
 };
 
-const subscribeToFollow = (token, sessionId, userId) => {
+const subscribeToPubSubEvent = (token, sessionId, userId, type, version) => {
   return new Promise((resolve, reject) => {
     const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
     const body = {
-      type: "channel.follow",
-      version: "2",
+      type,
+      version,
       condition: {
         broadcaster_user_id: userId,
         moderator_user_id: userId,
@@ -74,6 +74,47 @@ const subscribeToFollow = (token, sessionId, userId) => {
       .post(url, body, options)
       .then(({ data }) => resolve(data))
       .catch(reject);
+  });
+};
+
+const subscribeToFollow = (token, sessionId, userId) => {
+  return subscribeToPubSubEvent(
+    token,
+    sessionId,
+    userId,
+    "channel.follow",
+    "2"
+  );
+};
+
+const subscribeToChannelPointRedemptions = (token, sessionId, userId) => {
+  return subscribeToPubSubEvent(
+    token,
+    sessionId,
+    userId,
+    "channel.channel_points_custom_reward_redemption.add",
+    "1"
+  );
+};
+
+const completeChannelPointRewardRequest = (token, channelId, id, rewardId) => {
+  return new Promise((resolve, reject) => {
+    const url = `https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=${channelId}&reward_id=${rewardId}&id=${id}`;
+    const body = { status: "FULFILLED" };
+
+    axios
+      .patch(url, body, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Client-Id": process.env.CLIENT_ID,
+        },
+      })
+      .then(({ data }) => {
+        resolve(data.data);
+      })
+      .catch((error) => {
+        reject(error);
+      });
   });
 };
 
@@ -158,34 +199,6 @@ const getAppCreds = () => {
   });
 };
 
-const getUserImage = (userId) => {
-  return new Promise((resolve, reject) => {
-    const existingUserImage = userImagesMap[userId];
-    if (existingUserImage !== void 0) {
-      resolve(existingUserImage);
-    } else {
-      const url = `https://api.twitch.tv/helix/users?id=${userId}`;
-      getAppCreds()
-        .then((token) => {
-          return axios.get(url, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Client-Id": process.env.CLIENT_ID,
-            },
-          });
-        })
-        .then(({ data }) => {
-          const userImage = data.data[0]?.profile_image_url;
-          userImagesMap[userId] = userImage;
-          resolve(userImage);
-        })
-        .catch((error) => {
-          reject(error);
-        });
-    }
-  });
-};
-
 const getUserData = (token) => {
   return new Promise((resolve, reject) => {
     const url = `https://api.twitch.tv/helix/users?login=${process.env.BOT_CHANNEL}`;
@@ -251,13 +264,14 @@ const formatMessage = (message, emotes) => {
 const formatMessageData = (data, message, badges) => {
   const result = {
     userId: data["user-id"],
+    msgId: data["msg-id"],
     displayName: data["display-name"],
-    color: data.color,
-    mod: data.mod,
     firstMsg: data["first-msg"],
-    subscriber: data.subscriber,
     returningChatter: data["returning-chatter"],
     messageType: data["message-type"],
+    color: data.color,
+    mod: data.mod,
+    subscriber: data.subscriber,
     message: formatMessage(message, data.emotes),
     rawMessage: message,
     badges: "",
@@ -283,4 +297,6 @@ module.exports = {
   subscribeToFollow,
   getUserCreds,
   refreshUserCreds,
+  subscribeToChannelPointRedemptions,
+  completeChannelPointRewardRequest,
 };

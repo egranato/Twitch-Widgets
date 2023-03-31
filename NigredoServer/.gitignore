@@ -1,3 +1,5 @@
 .env
 /node_modules
 user-creds.json
+/output/*
+/public/*

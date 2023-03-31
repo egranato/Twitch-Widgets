@@ -7,8 +7,13 @@ import { Component, OnInit } from '@angular/core';
   styleUrls: ['./auth.component.scss'],
 })
 export class AuthComponent implements OnInit {
+  private readonly urlRegex: RegExp = new RegExp(':', 'g');
   authUrl: string = '';
-  private scopes: Array<string> = ['moderator:read:followers'];
+  private scopes: Array<string> = [
+    'moderator:read:followers',
+    'channel:read:redemptions',
+    'channel:manage:redemptions',
+  ];
 
   constructor(private http: HttpClient) {}
 
@@ -30,11 +35,12 @@ export class AuthComponent implements OnInit {
     redirectURI: string,
     scopes: Array<string>
   ): string {
+    const urlSafeScopes = scopes.join('+').replace(this.urlRegex, '%3A');
     let url = `https://id.twitch.tv/oauth2/authorize`;
     url += `?response_type=code`;
     url += `&client_id=${clientId}`;
     url += `&redirect_uri=${redirectURI}`;
-    url += `&scope=${scopes.join(' ')}`;
+    url += `&scope=${urlSafeScopes}`;
     return url;
   }
 }

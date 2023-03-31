@@ -8,6 +8,8 @@ import { ChatComponent } from './components/chat/chat.component';
 import { AlertsComponent } from './components/alerts/alerts.component';
 import { DisplayComponent } from './components/display/display.component';
 import { AuthComponent } from './components/auth/auth.component';
+import { PointRedemptionsComponent } from './components/point-redemptions/point-redemptions.component';
+import { RewardMediaComponent } from './components/point-redemptions/reward-media/reward-media.component';
 
 @NgModule({
   declarations: [
@@ -16,6 +18,8 @@ import { AuthComponent } from './components/auth/auth.component';
     AlertsComponent,
     DisplayComponent,
     AuthComponent,
+    PointRedemptionsComponent,
+    RewardMediaComponent,
   ],
   imports: [BrowserModule, AppRoutingModule, HttpClientModule],
   providers: [],

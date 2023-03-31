@@ -44,21 +44,6 @@ CLIENT_SECRET=
 Start Server
 `npm start`
 
-## Rubedo Utilities (Python)
-
-Censors chat and speaks it aloud and plays alert sounds
-
-### Setup
-
-Navigate to folder
-`cd RubedoUtilities`
-
-Install dependencies
-`pipenv install`
-
-Start Server
-`python main.py`
-
 ## First Time Set Up
 
 ### Get latest widget code
@@ -81,8 +66,8 @@ Run update script
 
 - Improve emotes to display animated emotes
 
-- Channel Point Redemptions
-
 - Add channel specific badges
 
 - Make into .exe for ease of use
+
+- Add option to read text aloud (tmp removed)

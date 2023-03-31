@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { AlertEvent } from 'src/app/models/events.models';
+import { AudioService } from 'src/app/services/audio.service';
 import { SocketService } from 'src/app/services/socket.service';
 
 interface Alert {
@@ -15,7 +16,10 @@ interface Alert {
 export class AlertsComponent {
   public alert: Alert | null = null;
 
-  constructor(private socketService: SocketService) {
+  constructor(
+    private socketService: SocketService,
+    private audioService: AudioService
+  ) {
     this.socketService.alertEvent.subscribe((event) => {
       this.fireAlert(event);
     });
@@ -27,6 +31,7 @@ export class AlertsComponent {
     )}`;
     const message = this.getAlertMessage(event);
     this.alert = { text, message };
+    this.playAlertSound(event.type);
     setTimeout(() => {
       this.alert = null;
     }, 10000);
@@ -46,5 +51,9 @@ export class AlertsComponent {
       default:
         return 'Thank you so much!';
     }
+  }
+
+  playAlertSound(type: string): void {
+    this.audioService.playAudio(type);
   }
 }

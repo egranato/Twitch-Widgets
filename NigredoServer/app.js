@@ -30,6 +30,13 @@ utilities
     ]);
   })
   .then(([user, globalBadges, appToken]) => {
+    if (!fs.existsSync("user-creds.json")) {
+      logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
+      return;
+    }
+
+    const userCreds = JSON.parse(fs.readFileSync("user-creds.json").toString());
+
     // socket server to talk to widgets and tts client
     const io = new socketio.Server(server, {
       cors: {
@@ -39,6 +46,17 @@ utilities
 
     io.on("connection", (connection) => {
       logger.info("IO Client Connected!");
+
+      connection.on("point-fulfill", ({ id, rewardId }) => {
+        utilities
+          .completeChannelPointRewardRequest(
+            userCreds.access_token,
+            user.id,
+            rewardId,
+            id
+          )
+          .catch(logger.error);
+      });
     });
 
     twitchBot.on("message", (channel, data, message, self) => {
@@ -55,7 +73,7 @@ utilities
     twitchBot.on(
       "subscription",
       (channel, username, methods, message, userstate) => {
-        console.log({ channel, username, methods, message, userstate });
+        logger.info({ channel, username, methods, message, userstate });
       }
     );
 
@@ -66,37 +84,48 @@ utilities
 
     // set up twitch pubsub socket
     const twitchClient = new WebSocketClient();
+
     const subscribeToFollow = (sessionId) => {
-      if (!fs.existsSync("user-creds.json")) {
-        logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
-        return;
-      }
-
-      const userCreds = JSON.parse(
-        fs.readFileSync("user-creds.json").toString()
-      );
-
-      utilities
-        .subscribeToFollow(userCreds.access_token, sessionId, user.id)
-        .then((_) => {
-          logger.info("Twitch Client Subscribed to Follow Events");
-        })
-        .catch((error) => {
-          if (error.response.status === 401) {
-            utilities
-              .refreshUserCreds(userCreds.refresh_token)
-              .then((_) => {
-                logger.info("Refreshed OAuth Token");
-                subscribeToFollow(sessionId);
-              })
-              .catch((error) => {
-                logger.error(error);
-              });
-          } else {
-            logger.error(error);
-          }
-        });
+      return new Promise((resolve, reject) => {
+        utilities
+          .subscribeToFollow(userCreds.access_token, sessionId, user.id)
+          .then((_) => {
+            logger.info("Twitch Client Subscribed to Follow Events");
+            resolve();
+          })
+          .catch((error) => {
+            if (error.response.status === 401) {
+              utilities
+                .refreshUserCreds(userCreds.refresh_token)
+                .then((_) => {
+                  logger.info("Refreshed OAuth Token");
+                  return subscribeToFollow(sessionId);
+                })
+                .then(resolve)
+                .catch((error) => {
+                  reject(error);
+                });
+            } else {
+              reject(error);
+            }
+          });
+      });
     };
+    const subscribeToChannelPointRedemptions = (sessionId) => {
+      utilities
+        .subscribeToChannelPointRedemptions(
+          userCreds.access_token,
+          sessionId,
+          user.id
+        )
+        .then((_) => {
+          logger.info(
+            "Twitch Client Subscribed to Channel Point Reward Events"
+          );
+        })
+        .catch(logger.error);
+    };
+
     twitchClient.on("connectFailed", function (error) {
       logger.info("Twitch Connect Error: " + error.toString());
     });
@@ -115,19 +144,33 @@ utilities
       connection.on("message", (message) => {
         if (message.type === "utf8") {
           const messageData = JSON.parse(message.utf8Data);
-          if (
-            messageData.metadata.message_type === "notification" &&
-            messageData.metadata.subscription_type === "channel.follow"
-          ) {
-            io.emit("follow", messageData.payload.event.user_name);
+
+          if (messageData.metadata.message_type === "notification") {
+            switch (messageData.metadata.subscription_type) {
+              case "channel.follow":
+                const newFollower = messageData.payload.event.user_name;
+                logger.info(`New Follower: ${newFollower}`);
+                io.emit("follow", newFollower);
+                break;
+              case "channel.channel_points_custom_reward_redemption.add":
+                const event = messageData.payload.event;
+                logger.info(`Point redemption: ${event.reward.title}`);
+                io.emit("point-redeem", event);
+                break;
+            }
           } else if (messageData.metadata.message_type === "session_welcome") {
             const sessionId = messageData.payload.session.id;
-            subscribeToFollow(sessionId);
+            subscribeToFollow(sessionId)
+              .then((_) => {
+                subscribeToChannelPointRedemptions(sessionId);
+              })
+              .catch(logger.error);
           }
         }
       });
     });
 
+    // connect to twitch pubsub socket
     twitchClient.connect("wss://eventsub-beta.wss.twitch.tv/ws");
   });
 

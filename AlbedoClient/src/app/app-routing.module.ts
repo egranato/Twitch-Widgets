@@ -5,11 +5,20 @@ import { AlertsComponent } from './components/alerts/alerts.component';
 import { AuthComponent } from './components/auth/auth.component';
 import { ChatComponent } from './components/chat/chat.component';
 import { DisplayComponent } from './components/display/display.component';
+import { PointRedemptionsComponent } from './components/point-redemptions/point-redemptions.component';
 
 const routes: Routes = [
   {
     path: '',
+    component: AuthComponent,
+  },
+  {
+    path: 'chat',
     component: ChatComponent,
+  },
+  {
+    path: 'redemptions',
+    component: PointRedemptionsComponent,
   },
   {
     path: 'alerts',
@@ -18,10 +27,6 @@ const routes: Routes = [
   {
     path: 'display',
     component: DisplayComponent,
-  },
-  {
-    path: 'auth',
-    component: AuthComponent,
   },
   {
     path: '**',

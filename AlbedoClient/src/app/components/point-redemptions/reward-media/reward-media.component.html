@@ -1,0 +1,12 @@
+<!-- wont work in browser but will in OBS -->
+<img *ngIf="alert?.type === 'hybrid'" [src]="mediaUrl" />
+<video
+  *ngIf="alert?.type === 'video'"
+  width="500"
+  height="500"
+  autoplay
+  #video
+  (ended)="complete()"
+>
+  <source [src]="mediaUrl" type="video/mp4" />
+</video>
