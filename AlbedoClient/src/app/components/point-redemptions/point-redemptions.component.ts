@@ -33,6 +33,14 @@ export class PointRedemptionsComponent {
             name: 'shotgun',
           });
           break;
+        case 'Bleh':
+          this.addAlertToQueue({
+            id: event.reward.id,
+            rewardId: event.id,
+            type: 'hybrid',
+            name: 'bleh',
+          });
+          break;
         case 'Loser':
           this.addAlertToQueue({
             id: event.reward.id,

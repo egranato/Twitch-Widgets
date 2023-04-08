@@ -45,7 +45,7 @@ const refreshUserCreds = (refreshToken) => {
       .then(({ data }) => {
         // using a raw file because this app is not intended to ever be hosted on a server and only used locally, might ecrpyt eventually
         fs.writeFileSync("user-creds.json", JSON.stringify(data));
-        resolve(true);
+        resolve(data);
       })
       .catch((error) => {
         reject(error);

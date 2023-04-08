@@ -36,7 +36,7 @@ utilities
       return;
     }
 
-    const userCreds = JSON.parse(fs.readFileSync("user-creds.json").toString());
+    let userCreds = JSON.parse(fs.readFileSync("user-creds.json").toString());
 
     // socket server to talk to widgets and tts client
     const io = new socketio.Server(server, {
@@ -112,7 +112,8 @@ utilities
             if (error.response.status === 401) {
               utilities
                 .refreshUserCreds(userCreds.refresh_token)
-                .then((_) => {
+                .then((newUserCreds) => {
+                  userCreds = newUserCreds;
                   logger.info("Refreshed OAuth Token");
                   return subscribeToFollow(sessionId);
                 })
