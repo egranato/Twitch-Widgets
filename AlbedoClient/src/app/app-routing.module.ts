@@ -29,6 +29,10 @@ const routes: Routes = [
     component: DisplayComponent,
   },
   {
+    path: 'auth',
+    component: AuthComponent,
+  },
+  {
     path: '**',
     pathMatch: 'full',
     redirectTo: '',

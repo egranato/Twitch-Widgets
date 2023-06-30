@@ -32,7 +32,7 @@ utilities
   })
   .then(([user, globalBadges, appToken]) => {
     if (!fs.existsSync("user-creds.json")) {
-      logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW");
+      logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW: http://localhost:3000/auth");
       return;
     }
 
@@ -143,7 +143,7 @@ utilities
     };
 
     twitchClient.on("connectFailed", function (error) {
-      logger.info("Twitch Connect Error: " + error.toString());
+      logger.error("Twitch Connect Error: " + error.toString());
     });
 
     twitchClient.on("connect", (connection) => {
@@ -187,11 +187,10 @@ utilities
     });
 
     // connect to twitch pubsub socket
-    twitchClient.connect("wss://eventsub-beta.wss.twitch.tv/ws");
+    twitchClient.connect("wss://eventsub.wss.twitch.tv/ws");
   });
 
 // serve angular widgets for OBS
-// cors is for development when angular is not running on 3000
 app.get("/api/client-id", (req, res) => {
   res.send({ clientId: process.env.CLIENT_ID });
 });
