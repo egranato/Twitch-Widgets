@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { BehaviorSubject, map } from 'rxjs';
 import { SocketService } from 'src/app/services/socket.service';
 import { RedemptionAlert } from './redemption-alert.model';
+import { REWARDS } from './rewards.data';
 
 @Component({
   selector: 'app-point-redemptions',
@@ -24,41 +25,18 @@ export class PointRedemptionsComponent {
 
   constructor(private socketService: SocketService) {
     this.socketService.redemptionEvent.subscribe((event) => {
-      switch (event.reward.title) {
-        case 'Shotgun':
-          this.addAlertToQueue({
-            id: event.reward.id,
-            rewardId: event.id,
-            type: 'hybrid',
-            name: 'shotgun',
-          });
-          break;
-        case 'Bleh':
-          this.addAlertToQueue({
-            id: event.reward.id,
-            rewardId: event.id,
-            type: 'hybrid',
-            name: 'bleh',
-          });
-          break;
-        case 'Loser':
-          this.addAlertToQueue({
-            id: event.reward.id,
-            rewardId: event.id,
-            type: 'video',
-            name: 'loser',
-          });
-          break;
-        case 'Yupee':
-          this.addAlertToQueue({
-            id: event.reward.id,
-            rewardId: event.id,
-            type: 'video',
-            name: 'yupee',
-          });
-          break;
-        default:
-          console.log(`Unhandled reward redeemed: ${event.reward.title}`);
+      const title = event.reward.title;
+      const reward = REWARDS.find((r) => r.title === title);
+
+      if (reward === void 0) {
+        console.log(`Unhandled reward redeemed: ${event.reward.title}`);
+      } else {
+        this.addAlertToQueue({
+          id: event.reward.id,
+          rewardId: event.id,
+          type: reward.type,
+          name: reward.filename,
+        });
       }
     });
   }

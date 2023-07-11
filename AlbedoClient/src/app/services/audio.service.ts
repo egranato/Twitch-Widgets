@@ -6,12 +6,12 @@ import { Injectable } from '@angular/core';
 export class AudioService {
   constructor() {}
 
-  playAudio(fileName: string): Promise<void> {
+  playAudio(fileName: string): Promise<Event> {
     // wont work in chrome or safari but will work in OBS
     return new Promise((resolve, reject) => {
       const audio = new Audio(`/assets/audio/${fileName}.mp3`);
       audio.onended = (event) => {
-        resolve();
+        resolve(event);
       };
       audio.play();
     });

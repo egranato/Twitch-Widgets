@@ -166,7 +166,7 @@ const getBadge = (id, version, badges) => {
     return null;
   }
   const ver = badgeSet.find((v) => v.id == version);
-  return ver.image_url_2x; // image_url_2x; image_url_4x; for bigger
+  return ver?.image_url_2x || null; // image_url_2x; image_url_4x; for bigger
 };
 
 const getRandom = (min, max) => {

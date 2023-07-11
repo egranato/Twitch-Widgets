@@ -32,7 +32,9 @@ utilities
   })
   .then(([user, globalBadges, appToken]) => {
     if (!fs.existsSync("user-creds.json")) {
-      logger.warning("NO USER CREDS FOUND PLEASE RUN AUTH FLOW: http://localhost:3000/auth");
+      logger.warning(
+        "NO USER CREDS FOUND PLEASE RUN AUTH FLOW: http://localhost:3000/auth"
+      );
       return;
     }
 
@@ -87,15 +89,120 @@ utilities
 
     twitchBot.on(
       "subscription",
-      (channel, username, methods, message, userstate) => {
-        logger.info({ channel, username, methods, message, userstate });
+      (channel, username, methods, message, userState) => {
+        logger.info({
+          event: "subscription",
+          channel,
+          username,
+          methods,
+          message,
+          userState,
+        });
       }
     );
 
-    // twitchBot.on("emotesets", (sets, obj) => {
-    //   console.log(sets);
-    //   console.log(obj);
-    // });
+    twitchBot.on(
+      "resub",
+      (channel, username, months, message, userState, methods) => {
+        logger.info({
+          event: "resub",
+          channel,
+          username,
+          methods,
+          message,
+          userState,
+          months,
+        });
+      }
+    );
+
+    twitchBot.on(
+      "anonsubgift",
+      (channel, streakMonths, recipient, methods, userState) => {
+        logger.info({
+          event: "anonsubgift",
+          channel,
+          streakMonths,
+          recipient,
+          methods,
+          userState,
+        });
+      }
+    );
+
+    twitchBot.on(
+      "anonsubmysterygift",
+      (channel, numOfSubs, methods, userState) => {
+        logger.info({
+          event: "anonsubmysterygift",
+          channel,
+          numOfSubs,
+          methods,
+          userState,
+        });
+      }
+    );
+
+    twitchBot.on("giftpaidupgrade", (channel, username, sender, userState) => {
+      logger.info({
+        event: "giftpaidupgrade",
+        channel,
+        username,
+        sender,
+        userState,
+      });
+    });
+
+    twitchBot.on(
+      "primepaidupgrade",
+      (channel, username, methods, userState) => {
+        logger.info({
+          event: "primepaidupgrade",
+          channel,
+          username,
+          methods,
+          userState,
+        });
+      }
+    );
+
+    twitchBot.on(
+      "subgift",
+      (channel, username, streakMonths, recipient, methods, userState) => {
+        logger.info({
+          event: "subgift",
+          channel,
+          username,
+          streakMonths,
+          recipient,
+          methods,
+          userState,
+        });
+      }
+    );
+
+    twitchBot.on(
+      "submysterygift",
+      (channel, username, numOfSubs, methods, userState) => {
+        logger.info({
+          event: "submysterygift",
+          channel,
+          username,
+          numOfSubs,
+          methods,
+          userState,
+        });
+      }
+    );
+
+    twitchBot.on("action", (channel, userState, message, self) => {
+      logger.info({ event: "action", channel, userState, message, self });
+    });
+
+    twitchBot.on("emotesets", (sets, obj) => {
+      console.log(sets);
+      console.log(obj);
+    });
 
     // set up twitch pubsub socket
     const twitchClient = new WebSocketClient();
@@ -153,7 +260,8 @@ utilities
         logger.error("Twitch Connection Error: " + error.toString());
       });
 
-      connection.on("close", () => {
+      connection.on("close", (event) => {
+        console.log(event);
         logger.warning("Twitch Connection Closed");
       });
 

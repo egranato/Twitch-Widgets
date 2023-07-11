@@ -16,6 +16,15 @@ Navigate to folder
 Install dependencies
 `npm i`
 
+Set up channel point rewards (optional)
+Go to `AlbedoClient/src/app/components/point-redemptions/rewards.data.ts` and add your channel point rewards
+Then to `AlbedoClient/src/assets` to add relevant files
+
+Type breakdown:
+'audio': expects an mp3 file in `AlbedoClient/src/assets/audio`
+'video': expects an mp4 file in `AlbedoClient/src/assets/video`
+'hybrid': expects an mp3 file in `AlbedoClient/src/assets/audio` as well as a gif in `AlbedoClient/src/assets/images`
+
 Build widget output
 `ng build`
 
