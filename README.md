@@ -79,8 +79,4 @@ Run update script
 
 - Add Subscription alerts
 
-- Improve emotes to display animated emotes
-
-- Add channel specific badges
-
 - Make into .exe for ease of use
