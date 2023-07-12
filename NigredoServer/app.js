@@ -24,13 +24,12 @@ utilities
   .getAppCreds()
   .then((appToken) => {
     // carry app token across incase it's needed later
-    return Promise.all([
-      utilities.getUserData(appToken),
-      utilities.getGobalBadges(appToken),
-      appToken,
-    ]);
+    return Promise.all([utilities.getUserData(appToken), appToken]);
   })
-  .then(([user, globalBadges, appToken]) => {
+  .then(([user, appToken]) => {
+    return Promise.all([user, utilities.getBadges(appToken, user.id)]);
+  })
+  .then(([user, allBadges]) => {
     if (!fs.existsSync("user-creds.json")) {
       logger.warning(
         "NO USER CREDS FOUND PLEASE RUN AUTH FLOW: http://localhost:3000/auth"
@@ -75,7 +74,7 @@ utilities
       const messageEvent = utilities.formatMessageData(
         data,
         message,
-        globalBadges
+        allBadges
       );
       io.emit("message", messageEvent);
 

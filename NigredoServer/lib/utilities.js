@@ -142,6 +142,61 @@ const getGobalBadges = (token) => {
   });
 };
 
+const getChannelBadges = (token, userId) => {
+  return new Promise((resolve, reject) => {
+    const url = `https://api.twitch.tv/helix/chat/badges?broadcaster_id=${userId}`;
+    axios
+      .get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Client-Id": process.env.CLIENT_ID,
+        },
+      })
+      .then(({ data }) => {
+        resolve(data.data);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
+const getBadges = (token, userId) => {
+  return new Promise((resolve, reject) => {
+    Promise.all([getGobalBadges(token), getChannelBadges(token, userId)])
+      .then(([globalBadges, channelBadges]) => {
+        const badges = globalBadges;
+        channelBadges.forEach((badge) => {
+          const exIndex = badges.findIndex(
+            (ebad) => ebad.set_id === badge.set_id
+          );
+          if (exIndex > -1) {
+            badges.splice(exIndex, 1);
+          }
+
+          badges.push(badge);
+        });
+
+        badges.sort((a, b) => {
+          if (a.set_id > b.set_id) {
+            return 1;
+          }
+
+          if (a.set_id < b.set_id) {
+            return -1;
+          }
+
+          return 0;
+        });
+
+        resolve(badges);
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
+};
+
 const getBadge = (id, version, badges) => {
   const binarySearch = (arr, x) => {
     const mid = Math.floor(arr.length / 2);
@@ -237,7 +292,7 @@ const formatMessage = (message, emotes) => {
     let result = message;
     const emoteMap = [];
     Object.keys(emotes).forEach((emoteId, index) => {
-      const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/static/light/1.0`; // 2.0,3.0 for bigger
+      const emoteUrl = `https://static-cdn.jtvnw.net/emoticons/v2/${emoteId}/default/light/1.0`; // 2.0,3.0 for bigger
       const map = {
         html: `<img src="${emoteUrl}" alt="Emote-${emoteId}" />`,
       };
@@ -285,6 +340,7 @@ const formatMessageData = (data, message, badges) => {
   if (data.badges) {
     Object.keys(data.badges).forEach((b) => {
       const url = getBadge(b, data.badges[b], badges);
+
       if (url !== null) {
         result.badges += `<img src="${url}" alt="${b}-badge" /> `;
       }
@@ -298,7 +354,7 @@ module.exports = {
   createMp3FileName,
   formatMessageData,
   getAppCreds,
-  getGobalBadges,
+  getBadges,
   getUserData,
   subscribeToFollow,
   getUserCreds,
