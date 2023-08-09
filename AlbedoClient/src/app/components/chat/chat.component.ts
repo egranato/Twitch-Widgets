@@ -20,7 +20,7 @@ export class ChatComponent {
     this.socketService.messageEvent.subscribe((event: MessageEvent) => {
       this.chatHistory.push(event);
 
-      if (this.chatHistory.length > 100) {
+      if (this.chatHistory.length > 50) {
         this.chatHistory.shift();
       }
     });

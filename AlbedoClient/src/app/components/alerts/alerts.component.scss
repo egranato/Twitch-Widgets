@@ -1,152 +1,61 @@
 .alert-container {
+  position: relative;
+  overflow: hidden;
   height: 100%;
   width: 100%;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+}
+
+.claudio {
+  position: absolute;
+  top: 40px;
+  right: -500px;
+  transition: all 1s ease-in;
+}
+
+.claudio.in {
+  position: absolute;
+  top: -50px;
+  right: -400px;
+  transform: rotate(-25deg);
 }
 
 .alert-content {
-  position: relative;
-  height: 90%;
-  width: 90%;
-  background: linear-gradient(to bottom right, #3498da 40%, #2a4c8a 100%);
-  border-radius: 25px;
-  overflow: hidden;
-  animation-name: expand;
-  animation-duration: 0.2s;
-  animation-timing-function: ease-in;
-  opacity: 0.9;
-}
-
-.text {
-  color: #fefefe;
   position: absolute;
-  width: 90%;
-  text-align: center;
-  height: 40%;
-  top: 50%;
-  left: 5%;
-  animation-name: fade-in;
-  animation-duration: 0.2s;
-  animation-delay: 0.1s;
-  animation-timing-function: ease-out;
-  font-size: 35px;
+  // border: 1px solid blue;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 820px;
+  left: 0;
+  top: 0;
+  opacity: 1;
 
   p {
-    margin: 5% 0 2% 0;
-  }
-
-  .message {
-    font-size: 25px;
-    opacity: 0.8;
-    margin-bottom: 0;
+    margin: 0;
   }
 }
 
-.dot {
-  width: 8px;
-  height: 8px;
-  background: #fefefe;
-  border-radius: 50%;
-  position: absolute;
-  top: 4%;
-  right: 6%;
+.alert-text {
+  color: #bae4fd;
+  font-size: 40px;
 }
 
-.two {
-  right: 12%;
-  opacity: 0.5;
+.message {
+  color: #fefefe;
+  font-size: 26px;
 }
 
-.face {
-  position: absolute;
-  width: 22%;
-  height: 22%;
-  background: #fefefe;
-  border-radius: 50%;
-  border: 1px solid #2a4c8a;
-  top: 21%;
-  left: 37.5%;
-  z-index: 2;
-  animation: bounce 1s ease-in infinite;
-}
-
-.eye {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  background: #2a4c8a;
-  border-radius: 50%;
-  top: 40%;
-  left: 20%;
-}
-
-.right {
-  left: 68%;
-}
-
-.mouth {
-  position: absolute;
-  top: 43%;
-  left: 41%;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-
-.happy {
-  border: 2px solid;
-  border-color: transparent #2a4c8a #2a4c8a transparent;
-  transform: rotate(45deg);
-}
-
-.shadow {
-  position: absolute;
-  width: 21%;
-  height: 3%;
-  opacity: 0.5;
-  background: #2a4c8a;
-  left: 40%;
-  top: 43%;
-  border-radius: 50%;
-  z-index: 1;
-}
-
-.scale {
-  animation: scale 1s ease-in infinite;
-}
-
-@keyframes bounce {
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes scale {
-  50% {
-    transform: scale(0.9);
-  }
-}
-
-@keyframes expand {
+@keyframes pop-in {
   0% {
-    height: 0;
-    width: 0;
     opacity: 0;
   }
-  100% {
-    height: 90%;
-    width: 90%;
-    opacity: 0.9;
-  }
-}
-
-@keyframes fade-in {
-  0%,
-  75% {
+  25% {
     opacity: 0;
+  }
+  50% {
+    opacity: 1;
   }
   100% {
     opacity: 1;

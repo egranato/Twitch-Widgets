@@ -10,6 +10,7 @@ import { DisplayComponent } from './components/display/display.component';
 import { AuthComponent } from './components/auth/auth.component';
 import { PointRedemptionsComponent } from './components/point-redemptions/point-redemptions.component';
 import { RewardMediaComponent } from './components/point-redemptions/reward-media/reward-media.component';
+import { FullComponent } from './components/full/full.component';
 
 @NgModule({
   declarations: [
@@ -20,6 +21,7 @@ import { RewardMediaComponent } from './components/point-redemptions/reward-medi
     AuthComponent,
     PointRedemptionsComponent,
     RewardMediaComponent,
+    FullComponent,
   ],
   imports: [BrowserModule, AppRoutingModule, HttpClientModule],
   providers: [],

@@ -23,6 +23,10 @@ export class AlertsComponent {
     this.socketService.alertEvent.subscribe((event) => {
       this.fireAlert(event);
     });
+    // this.alert = {
+    //   text: 'definitelynotbirddad has just followed!',
+    //   message: 'Thank you so much!',
+    // };
   }
 
   fireAlert(event: AlertEvent): void {

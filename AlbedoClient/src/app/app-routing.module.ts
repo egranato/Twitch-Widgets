@@ -6,6 +6,7 @@ import { AuthComponent } from './components/auth/auth.component';
 import { ChatComponent } from './components/chat/chat.component';
 import { DisplayComponent } from './components/display/display.component';
 import { PointRedemptionsComponent } from './components/point-redemptions/point-redemptions.component';
+import { FullComponent } from './components/full/full.component';
 
 const routes: Routes = [
   {
@@ -31,6 +32,10 @@ const routes: Routes = [
   {
     path: 'auth',
     component: AuthComponent,
+  },
+  {
+    path: 'full',
+    component: FullComponent,
   },
   {
     path: '**',

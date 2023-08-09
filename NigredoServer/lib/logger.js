@@ -2,18 +2,22 @@ const chalk = require("chalk");
 const fs = require("fs");
 const path = require("path");
 
-const logfile = path.resolve("./output/logfile.txt");
+const logfile = {
+  info: path.resolve("./output/info.txt"),
+  warning: path.resolve("./output/warning.txt"),
+  error: path.resolve("./output/error.txt"),
+};
 
 const error = (e) => {
-  appendLog("Error", e);
+  appendLog("error", e);
   console.log(chalk.bold.red(e));
 };
 const warning = (w) => {
-  appendLog("Warning", w);
+  appendLog("warning", w);
   console.log(chalk.bold.yellow(w));
 };
 const info = (i) => {
-  appendLog("Info", i);
+  appendLog("info", i);
   console.log(chalk.bold.blue(i));
 };
 
@@ -24,10 +28,10 @@ const appendLog = (type, data, time = new Date()) => {
   }
   const message = `\n\n--------------${time.toString()}----------------\n${type}:\n${data}`;
 
-  if (!fs.existsSync(logfile)) {
-    fs.writeFileSync(logfile, message);
+  if (!fs.existsSync(logfile[type])) {
+    fs.writeFileSync(logfile[type], message);
   } else {
-    fs.appendFileSync(logfile, message);
+    fs.appendFileSync(logfile[type], message);
   }
 };
 

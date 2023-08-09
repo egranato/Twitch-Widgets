@@ -1,16 +1,12 @@
 <div class="alert-container">
   <div class="alert-content" *ngIf="alert !== null">
-    <div class="dot"></div>
-    <div class="dot two"></div>
-    <div class="face">
-      <div class="eye"></div>
-      <div class="eye right"></div>
-      <div class="mouth happy"></div>
-    </div>
-    <div class="shadow scale"></div>
-    <div class="text">
-      <p class="alert-text">{{ alert.text }}</p>
-      <p class="message">{{ alert.message }}</p>
-    </div>
+    <p class="alert-text">{{ alert.text }}</p>
+    <p class="message">{{ alert.message }}</p>
   </div>
+  <img
+    class="claudio"
+    [class.in]="alert !== null"
+    src="/assets/images/Claudio.png"
+    alt="cluadio"
+  />
 </div>

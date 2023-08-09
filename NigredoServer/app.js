@@ -198,11 +198,6 @@ utilities
       logger.info({ event: "action", channel, userState, message, self });
     });
 
-    twitchBot.on("emotesets", (sets, obj) => {
-      console.log(sets);
-      console.log(obj);
-    });
-
     // set up twitch pubsub socket
     const twitchClient = new WebSocketClient();
 
@@ -320,6 +315,11 @@ app.get("/api/authreturn", (req, res) => {
 app.use(express.static("public/"));
 app.get("*", (req, res) => {
   res.sendFile(path.resolve("public/index.html"));
+});
+
+// listen for crashes
+process.on("uncaughtException", (error) => {
+  logger.error(error.stack);
 });
 
 // start express/socket.io server
