@@ -20,9 +20,9 @@ export class ChatComponent {
     this.socketService.messageEvent.subscribe((event: MessageEvent) => {
       this.chatHistory.push(event);
 
-      if (this.chatHistory.length > 50) {
+      setTimeout(() => {
         this.chatHistory.shift();
-      }
+      }, 10000);
     });
 
     this.socketService.ttsMessageEvent.subscribe((id: string) => {

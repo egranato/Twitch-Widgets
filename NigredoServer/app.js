@@ -89,29 +89,14 @@ utilities
     twitchBot.on(
       "subscription",
       (channel, username, methods, message, userState) => {
-        logger.info({
-          event: "subscription",
-          channel,
-          username,
-          methods,
-          message,
-          userState,
-        });
+        io.emit("subscription", userState["system-msg"]);
       }
     );
 
     twitchBot.on(
       "resub",
       (channel, username, months, message, userState, methods) => {
-        logger.info({
-          event: "resub",
-          channel,
-          username,
-          methods,
-          message,
-          userState,
-          months,
-        });
+        io.emit("subscription", userState["system-msg"]);
       }
     );
 

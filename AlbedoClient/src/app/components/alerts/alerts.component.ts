@@ -23,38 +23,28 @@ export class AlertsComponent {
     this.socketService.alertEvent.subscribe((event) => {
       this.fireAlert(event);
     });
-    // this.alert = {
-    //   text: 'definitelynotbirddad has just followed!',
-    //   message: 'Thank you so much!',
-    // };
   }
 
   fireAlert(event: AlertEvent): void {
-    const text = `${event.displayName} has just ${this.getAlertText(
-      event.type
-    )}`;
-    const message = this.getAlertMessage(event);
-    this.alert = { text, message };
+    switch (event.type) {
+      case 'follow':
+        this.alert = {
+          text: `${event.displayName} has just followed!`,
+          message: 'Thank you so much!',
+        };
+        break;
+      case 'subscription':
+        this.alert = {
+          text: event.displayName,
+          message: "You're a real homie <3",
+        };
+        break;
+    }
+
     this.playAlertSound(event.type);
     setTimeout(() => {
       this.alert = null;
     }, 10000);
-  }
-
-  getAlertText(type: string): string {
-    switch (type) {
-      case 'follow':
-        return 'followed!';
-      default:
-        return '';
-    }
-  }
-
-  getAlertMessage(event: AlertEvent): string {
-    switch (event.type) {
-      default:
-        return 'Thank you so much!';
-    }
   }
 
   playAlertSound(type: string): void {

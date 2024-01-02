@@ -49,6 +49,11 @@ export class SocketService {
       this.alertEventSubject.next({ displayName: event, type: 'follow' });
     });
 
+    this.socket.on('subscription', (event: string) => {
+      // sending system message instead so i dont have to parse months info since it seems incorrect on the event
+      this.alertEventSubject.next({ displayName: event, type: 'subscription' });
+    });
+
     this.socket.on('point-redeem', (event: RedemptionEvent) => {
       this.redemptionEventSubject.next(event);
     });
