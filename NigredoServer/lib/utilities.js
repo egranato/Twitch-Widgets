@@ -102,10 +102,10 @@ const subscribeToChannelPointRedemptions = (token, sessionId, userId) => {
   );
 };
 
-const completeChannelPointRewardRequest = (token, channelId, id, rewardId) => {
+const completeChannelPointRewardRequest = (token, channelId, id, rewardId, success = true) => {
   return new Promise((resolve, reject) => {
     const url = `https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id=${channelId}&reward_id=${rewardId}&id=${id}`;
-    const body = { status: "FULFILLED" };
+    const body = { status: success ? "FULFILLED" : "CANCELED" };
 
     axios
       .patch(url, body, {

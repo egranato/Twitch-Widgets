@@ -16,10 +16,20 @@
   position: relative;
   width: 100%;
   font-weight: 600;
-  font-size: 30px;
-  min-height: 35px;
+  font-size: 20px;
+  min-height: 30px;
 
   span:not(.author) {
     color: #fefefe;
+  }
+
+  .badges {
+    height: 20px;
+
+    img {
+      height: 20px;
+      width: auto;
+      transform: translateY(3px);
+    }
   }
 }

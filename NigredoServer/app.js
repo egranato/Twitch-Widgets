@@ -258,7 +258,21 @@ utilities
               case "channel.channel_points_custom_reward_redemption.add":
                 const event = messageData.payload.event;
                 logger.info(`Point redemption: ${event.reward.title}`);
-                io.emit("point-redeem", event);
+                const clientCount = io.engine.clientsCount;
+                if (clientCount > 0) {
+                  io.emit("point-redeem", event);
+                } else {
+                  // if no clients are connected to fulfill the redemption automatically refund
+                  utilities
+                    .completeChannelPointRewardRequest(
+                      userCreds.access_token,
+                      user.id,
+                      event.id,
+                      event.reward.id,
+                      false
+                    )
+                    .catch(logger.error);
+                }
                 break;
             }
           } else if (messageData.metadata.message_type === "session_welcome") {

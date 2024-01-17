@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewEncapsulation } from '@angular/core';
 import { AudioService } from 'src/app/services/audio.service';
 import { SocketService } from 'src/app/services/socket.service';
 import { MessageEvent } from '../../models/events.models';
@@ -7,6 +7,7 @@ import { MessageEvent } from '../../models/events.models';
   selector: 'app-chat',
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class ChatComponent {
   chatHistory: Array<MessageEvent>;
@@ -22,7 +23,7 @@ export class ChatComponent {
 
       setTimeout(() => {
         this.chatHistory.shift();
-      }, 10000);
+      }, 20000);
     });
 
     this.socketService.ttsMessageEvent.subscribe((id: string) => {
