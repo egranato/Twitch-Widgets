@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js",
-    "update": "node ./lib/update-widgets.js"
+    "dev": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
