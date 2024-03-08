@@ -9,6 +9,7 @@ const path = require("path");
 const cors = require("cors");
 const fs = require("fs");
 const gtts = require("better-node-gtts").default;
+const mp3Duration = require("./lib/mp3-duration");
 
 const app = express();
 const server = require("http").createServer(app);
@@ -81,7 +82,12 @@ utilities
       // tts
       const filename = utilities.createMp3FileName(data.id);
 
-      gtts.save(filename, message).then(() => {
+      gtts.save(filename, message)
+      .then(() => {
+        return mp3Duration.getDurationInMiliseconds(filename);
+      })
+      .then((duration) => {
+        // TODO: pass duration to client
         io.emit("tts-message", data.id);
       });
     });
