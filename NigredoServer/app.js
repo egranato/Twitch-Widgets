@@ -10,6 +10,7 @@ const cors = require("cors");
 const fs = require("fs");
 const gtts = require("better-node-gtts").default;
 const mp3Duration = require("./lib/mp3-duration");
+const obs = require("./lib/obs");
 
 const app = express();
 const server = require("http").createServer(app);
@@ -19,6 +20,13 @@ app.use(
     origin: "http://localhost:4200",
   })
 );
+
+// helper function
+const sleep = (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+};
 
 // get global items that will be nessicary for functioning later
 utilities
@@ -66,6 +74,7 @@ utilities
       connection.on("tts-complete", (id) => {
         const filename = utilities.createMp3FileName(id);
         fs.unlinkSync(filename);
+        obs.toggleChatHead(false);
       });
     });
 
@@ -82,14 +91,22 @@ utilities
       // tts
       const filename = utilities.createMp3FileName(data.id);
 
-      gtts.save(filename, message)
-      .then(() => {
-        return mp3Duration.getDurationInMiliseconds(filename);
-      })
-      .then((duration) => {
+      gtts
+        .save(filename, message)
+        // .then(() => {
+        //   return mp3Duration.getDurationInMiliseconds(filename);
+        // })
+        // .then((duration) => {
         // TODO: pass duration to client
-        io.emit("tts-message", data.id);
-      });
+        .then(() => {
+          return obs.toggleChatHead(true);
+        })
+        .then(() => {
+          return sleep(500);
+        })
+        .then(() => {
+          io.emit("tts-message", data.id);
+        });
     });
 
     twitchBot.on(
