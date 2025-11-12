@@ -1,8 +1,10 @@
 const OBSWebSocket = require("obs-websocket-js").default;
 const obs = new OBSWebSocket();
 
+const logger = require("./logger");
+
 obs.connect().then(() => {
-  console.log("Connected to OBS Websocket!");
+  logger.info("Connected to OBS Websocket!");
 });
 
 const toggleChatHead = async (enable = false) => {
@@ -23,4 +25,21 @@ const toggleChatHead = async (enable = false) => {
   }
 };
 
-module.exports = { toggleChatHead };
+const penguins = async (enable = false) => {
+  const rewardItems = await obs.call("GetGroupSceneItemList", { sceneName: "Channel Point Rewards"});
+  const penguinIndex = rewardItems.sceneItems.findIndex((x) => {
+    return x.sourceName === "Penguins";
+  });
+  if (penguinIndex >= 0) {
+    await obs.call("SetSceneItemEnabled", {
+      sceneName: "Channel Point Rewards",
+      sceneItemId: rewardItems.sceneItems[penguinIndex].sceneItemId,
+      sceneItemEnabled: enable,
+    });
+    return true;
+  } else {
+    return false;
+  }
+}
+
+module.exports = { toggleChatHead, penguins };

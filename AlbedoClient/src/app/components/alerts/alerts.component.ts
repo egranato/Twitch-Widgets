@@ -36,7 +36,7 @@ export class AlertsComponent {
       case 'subscription':
         this.alert = {
           text: event.displayName,
-          message: "You're a real homie <3",
+          message: "You're a real legend <3",
         };
         break;
     }

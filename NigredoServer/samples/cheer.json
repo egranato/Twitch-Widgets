@@ -1,0 +1,31 @@
+{
+    "event": "cheer",
+    "channel": "#abirddad",
+    "userState": {
+        "badge-info": null,
+        "badges": {
+            "premium": "1"
+        },
+        "bits": "1",
+        "color": "#FF69B4",
+        "display-name": "Lazandolf",
+        "emotes": null,
+        "first-msg": false,
+        "flags": null,
+        "id": "7c6cf013-221d-4bff-bc3f-588c50944324",
+        "mod": false,
+        "returning-chatter": false,
+        "room-id": "53391468",
+        "subscriber": false,
+        "tmi-sent-ts": "1745344811102",
+        "turbo": false,
+        "user-id": "45794876",
+        "user-type": null,
+        "emotes-raw": null,
+        "badge-info-raw": null,
+        "badges-raw": "premium/1",
+        "username": "lazandolf",
+        "message-type": "chat"
+    },
+    "message": "Cheer1 stop right there criminal scum"
+}

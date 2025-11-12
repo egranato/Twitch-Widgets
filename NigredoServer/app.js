@@ -206,6 +206,30 @@ utilities
       logger.info({ event: "action", channel, userState, message, self });
     });
 
+    twitchBot.on("cheer", (channel, userState, message) => {
+      // tts
+      const filename = utilities.createMp3FileName(userState.id);
+
+      message = `${userState["display-name"]} donated ${userState.bits} bits and says "${message}"`;
+
+      gtts
+        .save(filename, message)
+        // .then(() => {
+        //   return mp3Duration.getDurationInMiliseconds(filename);
+        // })
+        // .then((duration) => {
+        // TODO: pass duration to client
+        .then(() => {
+          return obs.toggleChatHead(true);
+        })
+        .then(() => {
+          return sleep(500);
+        })
+        .then(() => {
+          io.emit("tts-message", userState.id);
+        });
+    });
+
     // set up twitch pubsub socket
     const twitchClient = new WebSocketClient();
 
@@ -267,7 +291,7 @@ utilities
         logger.warning("Twitch Connection Closed");
       });
 
-      connection.on("message", (message) => {
+      connection.on("message", async (message) => {
         if (message.type === "utf8") {
           const messageData = JSON.parse(message.utf8Data);
 
@@ -282,19 +306,70 @@ utilities
                 const event = messageData.payload.event;
                 logger.info(`Point redemption: ${event.reward.title}`);
                 const clientCount = io.engine.clientsCount;
-                if (clientCount > 0) {
-                  io.emit("point-redeem", event);
-                } else {
-                  // if no clients are connected to fulfill the redemption automatically refund
-                  utilities
-                    .completeChannelPointRewardRequest(
-                      userCreds.access_token,
-                      user.id,
-                      event.id,
-                      event.reward.id,
-                      false
-                    )
-                    .catch(logger.error);
+
+                switch (event.reward.title) {
+                  case "Replace Gameplay with Penguins":
+                    const processPenguins = () => {
+                      return new Promise(async (resolve, reject) => {
+                        // show penguins
+                        var success = await obs.penguins(true);
+                        if (!success) {
+                          return reject("could not find video to show");
+                        }
+                        // wait
+                        setTimeout(async () => {
+                          // hide penguins
+                          console.log('Hide penguins');
+                          success = await obs.penguins(false);
+                          if (!success) {
+                            return reject("could not find video to show");
+                          } else {
+                            return resolve();
+                          }
+                        }, 180000) // 3 minutes
+                      });
+                    };
+
+                    processPenguins().then(() => {
+                      // charge channel points
+                      utilities
+                        .completeChannelPointRewardRequest(
+                          userCreds.access_token,
+                          user.id,
+                          event.id,
+                          event.reward.id
+                        )
+                        .catch(logger.error);
+                    }).catch((error) => {
+                      logger.error(error);
+                      // refund channel points
+                      utilities
+                        .completeChannelPointRewardRequest(
+                          userCreds.access_token,
+                          user.id,
+                          event.id,
+                          event.reward.id,
+                          false
+                        )
+                        .catch(logger.error);
+                    });
+                    
+                    break;
+                  default:
+                    if (clientCount > 0) {
+                      io.emit("point-redeem", event);
+                    } else {
+                      // if no clients are connected to fulfill the redemption automatically refund
+                      utilities
+                        .completeChannelPointRewardRequest(
+                          userCreds.access_token,
+                          user.id,
+                          event.id,
+                          event.reward.id,
+                          false
+                        )
+                        .catch(logger.error);
+                    }
                 }
                 break;
             }

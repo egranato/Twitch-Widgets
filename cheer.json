@@ -1,0 +1,34 @@
+{
+    "event": "cheer",
+    "channel": "#abirddad",
+    "userState": {
+        "badge-info": {
+            "founder": "1"
+        },
+        "badges": {
+            "founder": "0",
+            "bits-leader": "2"
+        },
+        "bits": "6",
+        "color": "#FF69B4",
+        "display-name": "Lazandolf",
+        "emotes": null,
+        "first-msg": false,
+        "flags": null,
+        "id": "fa61e402-031a-4c8a-9d79-d5ed742b1199",
+        "mod": false,
+        "returning-chatter": false,
+        "room-id": "53391468",
+        "subscriber": true,
+        "tmi-sent-ts": "1738290905693",
+        "turbo": false,
+        "user-id": "45794876",
+        "user-type": null,
+        "emotes-raw": null,
+        "badge-info-raw": "founder/1",
+        "badges-raw": "founder/0,bits-leader/2",
+        "username": "lazandolf",
+        "message-type": "chat"
+    },
+    "message": "uni1 uni1 uni1 uni1 uni1 uni1"
+}
