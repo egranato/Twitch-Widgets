@@ -118,6 +118,7 @@ const completeChannelPointRewardRequest = (token, channelId, id, rewardId, succe
         resolve(data.data);
       })
       .catch((error) => {
+        console.log(error);
         reject(error);
       });
   });
