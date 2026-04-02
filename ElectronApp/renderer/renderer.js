@@ -22,6 +22,7 @@ const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const restartServerBtn = document.getElementById('restartServerBtn');
 const copyAllRoutesBtn = document.getElementById('copyAllRoutesBtn');
 const settingsErrorText = document.getElementById('settingsErrorText');
+const settingsDirtyIndicator = document.getElementById('settingsDirtyIndicator');
 
 const baseHostInput = document.getElementById('baseHostInput');
 const portInput = document.getElementById('portInput');
@@ -61,6 +62,50 @@ let desktopTtsSocket = null;
 let desktopTtsSocketBaseUrl = '';
 let desktopTtsQueue = [];
 let desktopTtsPlaying = false;
+let settingsInitialized = false;
+let lastAppliedSettings = null;
+
+function normalizeSettings(settings) {
+  return {
+    baseHost: String(settings?.baseHost || 'localhost').trim(),
+    port: Number.parseInt(String(settings?.port || 3000), 10),
+    envFilePath: String(settings?.envFilePath || '').trim(),
+    userCredsPath: String(settings?.userCredsPath || '').trim(),
+    obsAudioOwnerMode: Boolean(settings?.obsAudioOwnerMode),
+    desktopTtsEnabled: settings?.desktopTtsEnabled !== false,
+    audioMode: String(settings?.audioMode || 'auto'),
+    obsAutoOpenFullOnStart: Boolean(settings?.obsAutoOpenFullOnStart),
+    obsShowSizeHints: Boolean(settings?.obsShowSizeHints),
+  };
+}
+
+function areSettingsEqual(a, b) {
+  return a.baseHost === b.baseHost
+    && a.port === b.port
+    && a.envFilePath === b.envFilePath
+    && a.userCredsPath === b.userCredsPath
+    && a.obsAudioOwnerMode === b.obsAudioOwnerMode
+    && a.desktopTtsEnabled === b.desktopTtsEnabled
+    && a.audioMode === b.audioMode
+    && a.obsAutoOpenFullOnStart === b.obsAutoOpenFullOnStart
+    && a.obsShowSizeHints === b.obsShowSizeHints;
+}
+
+function hasUnsavedSettingsChanges() {
+  if (!settingsInitialized || !lastAppliedSettings) {
+    return false;
+  }
+
+  return !areSettingsEqual(getSettingsPayload(), lastAppliedSettings);
+}
+
+function renderSettingsDirtyIndicator() {
+  if (!settingsDirtyIndicator) {
+    return;
+  }
+
+  settingsDirtyIndicator.hidden = !hasUnsavedSettingsChanges();
+}
 
 async function loadSocketIoClient(baseUrl) {
   if (window.io) {
@@ -70,20 +115,35 @@ async function loadSocketIoClient(baseUrl) {
   const scriptId = 'desktop-socket-io-client';
   const existing = document.getElementById(scriptId);
   if (existing) {
-    return new Promise((resolve) => {
-      existing.addEventListener('load', () => resolve(Boolean(window.io)), { once: true });
-      existing.addEventListener('error', () => resolve(false), { once: true });
-    });
+    return Boolean(window.io);
   }
 
-  return new Promise((resolve) => {
+  try {
+    const response = await fetch(`${baseUrl}/socket.io/socket.io.js`, {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const scriptText = await response.text();
+    const trimmed = String(scriptText || '').trimStart().toLowerCase();
+
+    // When socket.io is not ready, server may return HTML fallback. Do not execute it.
+    if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<html') || trimmed.startsWith('<')) {
+      return false;
+    }
+
     const script = document.createElement('script');
     script.id = scriptId;
-    script.src = `${baseUrl}/socket.io/socket.io.js`;
-    script.onload = () => resolve(Boolean(window.io));
-    script.onerror = () => resolve(false);
+    script.textContent = scriptText;
     document.head.appendChild(script);
-  });
+
+    return Boolean(window.io);
+  } catch (_) {
+    return false;
+  }
 }
 
 function acknowledgeDesktopTts(id) {
@@ -289,7 +349,9 @@ function render(state) {
 
   serverUrlText.textContent = `Base URL: ${state.serverUrl}`;
   setDiagnostics(state.diagnostics || []);
-  renderSettings(state.settings || {});
+  renderSettings(state.settings || {}, {
+    preserveDraft: hasUnsavedSettingsChanges(),
+  });
   renderAudioStatus(state);
   renderStreamManager(state);
   ensureDesktopTtsConnection(state).catch(() => {
@@ -325,17 +387,28 @@ function renderStreamManager(state) {
   setFrameSource(streamFullFrame, routes.full);
 }
 
-function renderSettings(settings) {
-  baseHostInput.value = settings.baseHost || 'localhost';
-  portInput.value = settings.port || 3000;
-  envPathInput.value = settings.envFilePath || '';
-  credsPathInput.value = settings.userCredsPath || '';
-  audioOwnerToggle.checked = Boolean(settings.obsAudioOwnerMode);
-  desktopTtsToggle.checked = Boolean(settings.desktopTtsEnabled);
-  audioModeSelect.value = settings.audioMode || 'auto';
-  obsAutoOpenFullToggle.checked = Boolean(settings.obsAutoOpenFullOnStart);
-  obsShowSizeHintsToggle.checked = Boolean(settings.obsShowSizeHints);
+function renderSettings(settings, options = {}) {
+  const preserveDraft = Boolean(options.preserveDraft);
+
+  if (!preserveDraft) {
+    const normalized = normalizeSettings(settings);
+    baseHostInput.value = normalized.baseHost;
+    portInput.value = normalized.port;
+    envPathInput.value = normalized.envFilePath;
+    credsPathInput.value = normalized.userCredsPath;
+    audioOwnerToggle.checked = normalized.obsAudioOwnerMode;
+    if (desktopTtsToggle) {
+      desktopTtsToggle.checked = normalized.desktopTtsEnabled;
+    }
+    audioModeSelect.value = normalized.audioMode;
+    obsAutoOpenFullToggle.checked = normalized.obsAutoOpenFullOnStart;
+    obsShowSizeHintsToggle.checked = normalized.obsShowSizeHints;
+    lastAppliedSettings = normalized;
+    settingsInitialized = true;
+  }
+
   obsSizeHints.hidden = !obsShowSizeHintsToggle.checked;
+  renderSettingsDirtyIndicator();
 }
 
 function renderAudioStatus(state) {
@@ -387,12 +460,34 @@ function getSettingsPayload() {
     envFilePath: String(envPathInput.value || '').trim(),
     userCredsPath: String(credsPathInput.value || '').trim(),
     obsAudioOwnerMode: audioOwnerToggle.checked,
-    desktopTtsEnabled: desktopTtsToggle.checked,
+    desktopTtsEnabled: desktopTtsToggle ? desktopTtsToggle.checked : true,
     audioMode: audioModeSelect.value || 'auto',
     obsAutoOpenFullOnStart: obsAutoOpenFullToggle.checked,
     obsShowSizeHints: obsShowSizeHintsToggle.checked,
   };
 }
+
+const settingsInputs = [
+  baseHostInput,
+  portInput,
+  envPathInput,
+  credsPathInput,
+  audioOwnerToggle,
+  desktopTtsToggle,
+  audioModeSelect,
+  obsAutoOpenFullToggle,
+  obsShowSizeHintsToggle,
+].filter(Boolean);
+
+settingsInputs.forEach((input) => {
+  input.addEventListener('input', () => {
+    renderSettingsDirtyIndicator();
+  });
+
+  input.addEventListener('change', () => {
+    renderSettingsDirtyIndicator();
+  });
+});
 
 function validateSettingsPayload(payload) {
   const errors = [];
@@ -589,10 +684,14 @@ saveSettingsBtn.addEventListener('click', async () => {
   }
 
   if (result.restartRequired) {
+    lastAppliedSettings = normalizeSettings(payload);
+    renderSettingsDirtyIndicator();
     showInlineMessage('Settings saved. Restart server to apply runtime changes.');
     return;
   }
 
+  lastAppliedSettings = normalizeSettings(payload);
+  renderSettingsDirtyIndicator();
   showInlineMessage('Settings saved.');
 });
 

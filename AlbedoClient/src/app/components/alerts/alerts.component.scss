@@ -3,19 +3,19 @@
   overflow: visible;
   height: 100%;
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .alert-content {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 0 24px;
   text-align: center;
-  opacity: 1;
 
   p {
     margin: 0;
@@ -34,19 +34,4 @@
   color: #fefefe;
   font-size: 26px;
   font-weight: bold;
-}
-
-@keyframes pop-in {
-  0% {
-    opacity: 0;
-  }
-  25% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-  }
 }

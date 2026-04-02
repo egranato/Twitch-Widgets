@@ -283,6 +283,7 @@ Status: Shelved (Local-Only Complete)
 4. Profile presets for different stream layouts.
 5. Desktop lifecycle preference: optional "Quit app when window is closed" toggle (instead of tray-only background behavior on Windows).
 6. Alert presentation polish: add configurable fade/slide transition animations for queued alerts.
+7. UX friendliness upgrade: preserve unsaved settings drafts during state refresh, show explicit "not saved" indicator, and add clearer apply/restart guidance.
 
 ## Suggested Execution Order
 1. Milestone 1

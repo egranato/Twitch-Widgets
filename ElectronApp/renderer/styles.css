@@ -65,6 +65,13 @@ body {
   gap: 8px;
 }
 
+.settings-dirty {
+  margin-left: 8px;
+  color: var(--warn);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
 .settings-tabs {
   margin-top: 10px;
   display: flex;
