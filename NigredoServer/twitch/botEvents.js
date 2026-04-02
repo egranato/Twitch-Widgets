@@ -1,16 +1,62 @@
 // Twitch bot event handlers
 const messageFormatter = require('../services/message-formatter');
 const chatProcessor = require('../services/chat-processor');
+const createChatCommandTips = require('../services/chat-command-tips');
 const fisher = require('../lib/fisher');
+
+const MAX_CHAT_MESSAGE_LENGTH = 450;
+
+function chunkCommandMessages(prefix, entries) {
+  const messages = [];
+  let current = prefix;
+
+  for (const entry of entries) {
+    const fragment = `${entry.command} (${entry.description})`;
+    const separator = current === prefix ? '' : ' | ';
+    if ((current + separator + fragment).length > MAX_CHAT_MESSAGE_LENGTH) {
+      messages.push(current);
+      current = `${prefix}${fragment}`;
+    } else {
+      current += `${separator}${fragment}`;
+    }
+  }
+
+  if (current.length > prefix.length) {
+    messages.push(current);
+  }
+
+  return messages;
+}
 
 module.exports = function setupTwitchBotEvents(twitchBot, container) {
   const { io, logger, allBadges } = container;
+  const chatCommandTips = createChatCommandTips();
 
   twitchBot.on('message', (channel, data, message, self) => {
     if (self) return;
 
     const username = data['display-name'];
     const lowerMessage = message.toLowerCase();
+
+    // Check for !commands command
+    if (lowerMessage === '!commands' || lowerMessage.startsWith('!commands ')) {
+      const showAll = lowerMessage.includes(' all');
+      const commandHints = showAll
+        ? chatCommandTips.getAllCommandHints()
+        : chatCommandTips.getRandomCommandHints(4);
+
+      const commandMessages = chunkCommandMessages('Commands: ', commandHints);
+      commandMessages.forEach((line) => {
+        twitchBot.say(channel, line);
+      });
+
+      if (!showAll) {
+        twitchBot.say(channel, 'Use !commands all to see the full command list.');
+      }
+
+      logger.info(`[commands] Command list requested by ${username} in ${channel} (all=${showAll})`);
+      return; // Don't process as normal chat message
+    }
 
     // Check for !fish command
     if (lowerMessage.startsWith('!fish ') || lowerMessage === '!fish') {
@@ -33,6 +79,12 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
       twitchBot.say(channel, statsMessage);
       logger.info(`Stats requested: ${username}`);
       return; // Don't process as normal chat message
+    }
+
+    if (chatCommandTips.shouldSendTip(channel)) {
+      const tipMessage = chatCommandTips.createTipMessage();
+      twitchBot.say(channel, tipMessage);
+      logger.info(`[chat-tip] Sent command tip in ${channel}: ${tipMessage}`);
     }
 
     // send chat messages to clients
