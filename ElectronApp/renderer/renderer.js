@@ -3,6 +3,12 @@ const errorText = document.getElementById('errorText');
 const serverUrlText = document.getElementById('serverUrl');
 const diagnosticsList = document.getElementById('diagnosticsList');
 
+const audioStatusBadge = document.getElementById('audioStatusBadge');
+const audioPathStatus = document.getElementById('audioPathStatus');
+const audioModeStatus = document.getElementById('audioModeStatus');
+const audioLastCheckStatus = document.getElementById('audioLastCheckStatus');
+const checkAudioHealthBtn = document.getElementById('checkAudioHealthBtn');
+
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const logsBtn = document.getElementById('logsBtn');
@@ -17,6 +23,7 @@ const portInput = document.getElementById('portInput');
 const envPathInput = document.getElementById('envPathInput');
 const credsPathInput = document.getElementById('credsPathInput');
 const audioOwnerToggle = document.getElementById('audioOwnerToggle');
+const audioModeSelect = document.getElementById('audioModeSelect');
 const obsAutoOpenFullToggle = document.getElementById('obsAutoOpenFullToggle');
 const obsShowSizeHintsToggle = document.getElementById('obsShowSizeHintsToggle');
 const obsSizeHints = document.getElementById('obsSizeHints');
@@ -158,6 +165,7 @@ function render(state) {
   serverUrlText.textContent = `Base URL: ${state.serverUrl}`;
   setDiagnostics(state.diagnostics || []);
   renderSettings(state.settings || {});
+  renderAudioStatus(state);
   restartServerBtn.hidden = !state.settingsRestartRequired;
   updateQuickSetupChecklist(state);
 }
@@ -168,9 +176,41 @@ function renderSettings(settings) {
   envPathInput.value = settings.envFilePath || '';
   credsPathInput.value = settings.userCredsPath || '';
   audioOwnerToggle.checked = Boolean(settings.obsAudioOwnerMode);
+  audioModeSelect.value = settings.audioMode || 'auto';
   obsAutoOpenFullToggle.checked = Boolean(settings.obsAutoOpenFullOnStart);
   obsShowSizeHintsToggle.checked = Boolean(settings.obsShowSizeHints);
   obsSizeHints.hidden = !obsShowSizeHintsToggle.checked;
+}
+
+function renderAudioStatus(state) {
+  const audioHealthy = state.audioHealthy;
+  const audioPath = state.audioPathActive || 'none';
+  const audioMode = state.settings?.audioMode || 'auto';
+
+  // Update badge
+  audioStatusBadge.className = audioHealthy ? 'badge badge-running' : 'badge badge-inactive';
+  audioStatusBadge.textContent = audioHealthy ? 'Healthy' : 'Checking...';
+
+  // Update details
+  audioPathStatus.textContent = audioPath === 'none' ? 'Not available' : audioPath.toUpperCase();
+  audioPathStatus.className = `audio-path audio-path-${audioPath}`;
+
+  audioModeStatus.textContent = audioMode;
+
+  if (state.lastAudioHealthCheck) {
+    const checkTime = new Date(state.lastAudioHealthCheck);
+    const now = new Date();
+    const diffSeconds = Math.floor((now - checkTime) / 1000);
+    if (diffSeconds < 60) {
+      audioLastCheckStatus.textContent = `${diffSeconds}s ago`;
+    } else if (diffSeconds < 3600) {
+      audioLastCheckStatus.textContent = `${Math.floor(diffSeconds / 60)}m ago`;
+    } else {
+      audioLastCheckStatus.textContent = checkTime.toLocaleTimeString();
+    }
+  }
+
+  checkAudioHealthBtn.disabled = state.serverStatus !== 'running';
 }
 
 async function hydrate() {
@@ -185,6 +225,7 @@ function getSettingsPayload() {
     envFilePath: String(envPathInput.value || '').trim(),
     userCredsPath: String(credsPathInput.value || '').trim(),
     obsAudioOwnerMode: audioOwnerToggle.checked,
+    audioMode: audioModeSelect.value || 'auto',
     obsAutoOpenFullOnStart: obsAutoOpenFullToggle.checked,
     obsShowSizeHints: obsShowSizeHintsToggle.checked,
   };
@@ -400,6 +441,29 @@ restartServerBtn.addEventListener('click', async () => {
   }
 
   showInlineMessage('Server restarted with updated settings.');
+});
+
+audioModeSelect.addEventListener('change', async () => {
+  const newMode = audioModeSelect.value;
+  const result = await window.desktopAPI.setAudioMode(newMode);
+  if (!result.ok) {
+    showInlineMessage(`Failed to change audio mode: ${result.error}`);
+    return;
+  }
+
+  showInlineMessage(`Audio mode changed to ${newMode}.`);
+});
+
+checkAudioHealthBtn.addEventListener('click', async () => {
+  const result = await window.desktopAPI.checkAudioHealth();
+  if (!result.ok) {
+    showInlineMessage(`Audio health check failed: ${result.error}`);
+    return;
+  }
+
+  const status = result.audioHealthy ? 'Healthy' : 'Unhealthy';
+  const path = result.audioPathActive || 'none';
+  showInlineMessage(`Audio health: ${status} (path: ${path})`);
 });
 
 window.desktopAPI.onStateChanged((state) => {

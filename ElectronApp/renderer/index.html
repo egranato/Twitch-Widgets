@@ -28,6 +28,30 @@
 
     <section class="card">
       <div class="row">
+        <span class="label">Audio Status</span>
+        <span id="audioStatusBadge" class="badge badge-inactive">checking...</span>
+      </div>
+      <div class="audio-status-details">
+        <div class="status-line">
+          <span>Active Path:</span>
+          <span id="audioPathStatus" class="audio-path">None</span>
+        </div>
+        <div class="status-line">
+          <span>Mode:</span>
+          <span id="audioModeStatus" class="audio-mode">—</span>
+        </div>
+        <div class="status-line">
+          <span>Last Check:</span>
+          <span id="audioLastCheckStatus" class="audio-time">—</span>
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="checkAudioHealthBtn" class="button">Run Audio Health Check</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
         <h2>OBS Route Helper</h2>
         <button id="copyAllRoutesBtn" class="button">Copy All Routes</button>
       </div>
@@ -217,6 +241,14 @@
           <label class="checkbox span-2">
             <input id="obsShowSizeHintsToggle" type="checkbox" />
             <span>Show OBS size hints for 1080p layouts</span>
+          </label>
+          <label class="span-2">
+            Audio Playback Mode
+            <select id="audioModeSelect">
+              <option value="auto">Auto (OBS with Electron fallback)</option>
+              <option value="obs-only">OBS Only</option>
+              <option value="electron-only">Electron Only</option>
+            </select>
           </label>
         </div>
         <div id="obsSizeHints" class="size-hints">

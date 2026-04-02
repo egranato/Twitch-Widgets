@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('desktopAPI', {
   pickFile: (options) => ipcRenderer.invoke('desktop:pick-file', options),
   openLogs: () => ipcRenderer.invoke('desktop:open-logs'),
   runDiagnostics: () => ipcRenderer.invoke('desktop:run-diagnostics'),
+  getAudioStatus: () => ipcRenderer.invoke('desktop:get-audio-status'),
+  setAudioMode: (mode) => ipcRenderer.invoke('desktop:set-audio-mode', mode),
+  checkAudioHealth: () => ipcRenderer.invoke('desktop:check-audio-health'),
   onStateChanged: (listener) => {
     const wrapped = (_, state) => listener(state);
     ipcRenderer.on('desktop:state', wrapped);

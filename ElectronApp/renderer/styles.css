@@ -381,6 +381,16 @@ body {
   background: #fff;
 }
 
+.settings-grid select {
+  border: 1px solid #c8d5e6;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font: inherit;
+  color: var(--ink-0);
+  background: #fff;
+  cursor: pointer;
+}
+
 .path-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -393,6 +403,11 @@ body {
 }
 
 .settings-grid input:focus {
+  outline: 2px solid #b9dbff;
+  outline-offset: 1px;
+}
+
+.settings-grid select:focus {
   outline: 2px solid #b9dbff;
   outline-offset: 1px;
 }
@@ -476,6 +491,98 @@ body {
 
 .diagnostics li.ok {
   color: var(--ok);
+}
+
+.audio-status-details {
+  margin: 10px 0;
+  padding: 10px;
+  background: #f6fbff;
+  border-radius: 10px;
+  border: 1px solid #c8d5e6;
+}
+
+.status-line {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin: 6px 0;
+  font-size: 0.9rem;
+  color: var(--ink-1);
+}
+
+.status-line span:first-child {
+  font-weight: 600;
+  color: var(--ink-0);
+}
+
+.audio-path {
+  font-family: "Courier New", monospace;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.audio-path-obs {
+  color: #0f8;
+  background: #ecf9f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.audio-path-electron {
+  color: var(--warn);
+  background: #fff8e8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.audio-path-none {
+  color: #888;
+  background: #eee;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.audio-mode {
+  font-weight: 600;
+  background: #e8f1ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.audio-time {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.badge-stopped {
+  background: #fee;
+  color: var(--err);
+  border: 1px solid #f5a0a0;
+}
+
+.badge-running {
+  background: #efe;
+  color: var(--ok);
+  border: 1px solid #a0f5a0;
+}
+
+.badge-inactive {
+  background: #eee;
+  color: #666;
+  border: 1px solid #ccc;
 }
 
 @media (max-width: 860px) {

@@ -19,6 +19,7 @@ let mainWindow = null;
 let serverProcess = null;
 let isQuitting = false;
 let tray = null;
+let audioHealthCheckInterval = null;
 
 const SERVER_CWD = path.resolve(__dirname, '..', 'NigredoServer');
 const SERVER_ENTRY = path.resolve(SERVER_CWD, 'app.js');
@@ -32,6 +33,7 @@ const DEFAULT_SETTINGS = {
   obsAudioOwnerMode: true,
   obsAutoOpenFullOnStart: false,
   obsShowSizeHints: true,
+  audioMode: 'auto', // 'auto' | 'obs-only' | 'electron-only'
 };
 
 const ROUTE_PATHS = {
@@ -39,6 +41,7 @@ const ROUTE_PATHS = {
   chat: '/chat',
   alerts: '/alerts',
   redemptions: '/redemptions',
+  audioManager: '/audio-manager',
   auth: '/auth',
 };
 
@@ -52,6 +55,9 @@ const state = {
   diagnostics: [],
   settings,
   settingsRestartRequired: false,
+  audioHealthy: false, // health check for /audio-manager
+  audioPathActive: 'none', // 'obs' | 'electron' | 'none'
+  lastAudioHealthCheck: null,
 };
 
 function getServerPort() {
@@ -72,6 +78,7 @@ function getRoutes() {
     chat: getRouteUrl(ROUTE_PATHS.chat),
     alerts: getRouteUrl(ROUTE_PATHS.alerts),
     redemptions: getRouteUrl(ROUTE_PATHS.redemptions),
+    audioManager: getRouteUrl(ROUTE_PATHS.audioManager),
     auth: getRouteUrl(ROUTE_PATHS.auth),
   };
 }
@@ -94,6 +101,10 @@ function sanitizeSettings(raw) {
     ? normalized.userCredsPath.trim()
     : DEFAULT_SETTINGS.userCredsPath;
 
+  const audioMode = ['auto', 'obs-only', 'electron-only'].includes(normalized.audioMode)
+    ? normalized.audioMode
+    : DEFAULT_SETTINGS.audioMode;
+
   return {
     baseHost,
     port,
@@ -102,6 +113,7 @@ function sanitizeSettings(raw) {
     obsAudioOwnerMode: Boolean(normalized.obsAudioOwnerMode),
     obsAutoOpenFullOnStart: Boolean(normalized.obsAutoOpenFullOnStart),
     obsShowSizeHints: Boolean(normalized.obsShowSizeHints),
+    audioMode,
   };
 }
 
@@ -285,6 +297,7 @@ async function startServerProcess() {
     console.log(`[server] exited code=${code} signal=${signal || 'none'}`);
     const wasStopping = state.serverStatus === 'stopping' || isQuitting;
     serverProcess = null;
+    stopAudioHealthCheck();
 
     if (!wasStopping) {
       updateState({
@@ -300,6 +313,9 @@ async function startServerProcess() {
 
   await waitForServer(getServerBaseUrl());
   updateState({ serverStatus: 'running', lastError: '', settingsRestartRequired: false });
+
+  // Start audio health checks
+  startAudioHealthCheck();
 
   if (settings.obsAutoOpenFullOnStart) {
     shell.openExternal(getRouteUrl(ROUTE_PATHS.full)).catch(() => {
@@ -339,10 +355,12 @@ async function waitForServer(url, timeoutMs = 30000, intervalMs = 500) {
 
 async function stopServerProcess() {
   if (!serverProcess || state.serverStatus === 'stopping') {
+    stopAudioHealthCheck();
     updateState({ serverStatus: 'stopped', serverManagedByApp: false });
     return;
   }
 
+  stopAudioHealthCheck();
   updateState({ serverStatus: 'stopping' });
 
   const proc = serverProcess;
@@ -490,6 +508,91 @@ function createTray() {
   });
 }
 
+/**
+ * Audio Health Check System
+ * Monitors /audio-manager route availability and implements failover logic
+ */
+async function checkAudioHealth() {
+  if (state.serverStatus !== 'running') {
+    return;
+  }
+
+  const audioUrl = getRouteUrl(ROUTE_PATHS.audioManager);
+  try {
+    const response = await new Promise((resolve, reject) => {
+      const req = http.get(audioUrl, { timeout: 3000 }, (res) => {
+        resolve(res.statusCode === 200 || res.statusCode === 304);
+      });
+      req.on('error', reject);
+      req.on('timeout', () => req.abort());
+    });
+
+    const isHealthy = response === true;
+    const wasUnhealthy = !state.audioHealthy;
+
+    if (isHealthy) {
+      if (wasUnhealthy) {
+        console.log('[audio] /audio-manager route is now healthy');
+      }
+
+      // Determine which audio path is active based on mode and health
+      let audioPathActive = 'none';
+      if (settings.audioMode === 'obs-only' || settings.audioMode === 'auto') {
+        audioPathActive = 'obs';
+      }
+
+      updateState({
+        audioHealthy: true,
+        audioPathActive,
+        lastAudioHealthCheck: new Date().toISOString(),
+      });
+    } else {
+      throw new Error('Invalid response from audio-manager endpoint');
+    }
+  } catch (error) {
+    console.warn(`[audio] Health check failed: ${error.message}`);
+
+    // Handle failover based on audio mode setting
+    if (settings.audioMode === 'auto' && state.audioHealthy) {
+      console.log('[audio] OBS audio-manager unavailable, switching to electron fallback');
+      updateState({
+        audioHealthy: false,
+        audioPathActive: 'electron',
+        lastAudioHealthCheck: new Date().toISOString(),
+      });
+    } else if (settings.audioMode === 'obs-only' && state.audioHealthy) {
+      console.warn('[audio] OBS audio-manager unavailable but audio mode is obs-only');
+      updateState({
+        audioHealthy: false,
+        lastAudioHealthCheck: new Date().toISOString(),
+      });
+    }
+  }
+}
+
+function startAudioHealthCheck() {
+  if (audioHealthCheckInterval) {
+    return;
+  }
+
+  console.log('[audio] Starting health check interval (every 5 seconds)');
+  audioHealthCheckInterval = setInterval(checkAudioHealth, 5000);
+  // Run immediately on start
+  checkAudioHealth();
+}
+
+function stopAudioHealthCheck() {
+  if (audioHealthCheckInterval) {
+    console.log('[audio] Stopping health check interval');
+    clearInterval(audioHealthCheckInterval);
+    audioHealthCheckInterval = null;
+    updateState({
+      audioHealthy: false,
+      audioPathActive: 'none',
+    });
+  }
+}
+
 function registerIpcHandlers() {
   ipcMain.handle('desktop:get-state', async () => getPublicState());
 
@@ -616,6 +719,46 @@ function registerIpcHandlers() {
   ipcMain.handle('desktop:run-diagnostics', async () => {
     const diagnostics = runStartupDiagnostics();
     return { ok: true, diagnostics };
+  });
+
+  // Audio-related handlers
+  ipcMain.handle('desktop:get-audio-status', async () => {
+    return {
+      ok: true,
+      audioHealthy: state.audioHealthy,
+      audioPathActive: state.audioPathActive,
+      audioMode: settings.audioMode,
+      lastHealthCheck: state.lastAudioHealthCheck,
+    };
+  });
+
+  ipcMain.handle('desktop:set-audio-mode', async (_, mode) => {
+    if (!['auto', 'obs-only', 'electron-only'].includes(mode)) {
+      return { ok: false, error: 'Invalid audio mode' };
+    }
+
+    const previous = settings.audioMode;
+    settings.audioMode = mode;
+    saveSettingsToDisk(settings);
+    updateState({ settingsRestartRequired: false });
+
+    console.log(`[audio] Mode changed from ${previous} to ${mode}`);
+
+    // If switching back to auto and audio-manager is available, start health checks
+    if (mode === 'auto' && state.audioHealthy) {
+      updateState({ audioPathActive: 'obs' });
+    }
+
+    return { ok: true, previous, current: mode };
+  });
+
+  ipcMain.handle('desktop:check-audio-health', async () => {
+    await checkAudioHealth();
+    return {
+      ok: true,
+      audioHealthy: state.audioHealthy,
+      audioPathActive: state.audioPathActive,
+    };
   });
 }
 
