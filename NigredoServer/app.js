@@ -74,7 +74,16 @@ app.get('*', (req, res) => {
 
 // listen for crashes
 process.on('uncaughtException', (error) => {
-  logger.error(error.stack);
+  logger.error(`UNCAUGHT EXCEPTION: ${error.message}\n${error.stack}`);
+  console.error('Uncaught Exception - check /output/error.txt for details');
+});
+
+// listen for unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  const errorMessage = reason instanceof Error ? reason.message : String(reason);
+  const errorStack = reason instanceof Error ? reason.stack : '';
+  logger.error(`UNHANDLED REJECTION: ${errorMessage}\n${errorStack}\nPromise: ${promise}`);
+  console.error('Unhandled Rejection - check /output/error.txt for details');
 });
 
 // start express/socket.io server

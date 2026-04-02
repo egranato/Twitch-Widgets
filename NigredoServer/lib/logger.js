@@ -22,11 +22,21 @@ const info = (i) => {
 };
 
 const appendLog = (type, data, time = new Date()) => {
+  let formattedData = data;
+  
   switch (typeof data) {
     case "object":
-      data = JSON.stringify(data);
+      // Handle Error objects to preserve stack traces
+      if (data instanceof Error) {
+        formattedData = `${data.message}\n${data.stack}`;
+      } else {
+        formattedData = JSON.stringify(data, null, 2);
+      }
+      break;
   }
-  const message = `\n\n--------------${time.toString()}----------------\n${type}:\n${data}`;
+  
+  const timestamp = time.toISOString();
+  const message = `\n[$${timestamp}] -------${type.toUpperCase()}-------\n${formattedData}`;
 
   if (!fs.existsSync(logfile[type])) {
     fs.writeFileSync(logfile[type], message);
