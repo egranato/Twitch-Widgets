@@ -12,6 +12,10 @@ const mp3Duration = require('./lib/mp3-duration');
 const obs = require('./lib/obs');
 const sleep = require('./utils/sleep');
 
+const PORT = Number.parseInt(process.env.PORT || '3000', 10);
+const AUTH_URL = `http://localhost:${PORT}/auth`;
+const USER_CREDS_PATH = process.env.USER_CREDS_PATH || 'user-creds.json';
+
 // Services
 const authService = require('./services/auth-service');
 const twitchApi = require('./services/twitch-api');
@@ -29,11 +33,11 @@ authService
   .then((appToken) => Promise.all([twitchApi.getUserData(appToken), appToken]))
   .then(([user, appToken]) => Promise.all([user, twitchApi.getBadges(appToken, user.id)]))
   .then(([user, allBadges]) => {
-    if (!fs.existsSync('user-creds.json')) {
-      logger.warning('NO USER CREDS FOUND PLEASE RUN AUTH FLOW: http://localhost:3000/auth');
+    if (!fs.existsSync(USER_CREDS_PATH)) {
+      logger.warning(`NO USER CREDS FOUND PLEASE RUN AUTH FLOW: ${AUTH_URL}`);
       return;
     }
-    let userCreds = JSON.parse(fs.readFileSync('user-creds.json').toString());
+    let userCreds = JSON.parse(fs.readFileSync(USER_CREDS_PATH).toString());
 
     // socket server to talk to widgets and tts client
     const io = new socketio.Server(server, { cors: { origin: 'http://localhost:4200' } });
@@ -87,4 +91,4 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 // start express/socket.io server
-server.listen(3000);
+server.listen(PORT);

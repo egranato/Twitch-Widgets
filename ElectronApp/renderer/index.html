@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Twitch Widgets Desktop</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="layout">
+    <header class="hero">
+      <h1>Twitch Widgets Desktop</h1>
+      <p>Control local server, test overlays, and inspect diagnostics.</p>
+    </header>
+
+    <section class="card">
+      <div class="row">
+        <span class="label">Server Status</span>
+        <span id="statusBadge" class="badge badge-stopped">stopped</span>
+      </div>
+      <p id="errorText" class="error" hidden></p>
+      <div class="button-row">
+        <button id="startBtn" class="button button-primary">Start Server</button>
+        <button id="stopBtn" class="button">Stop Server</button>
+        <button id="logsBtn" class="button">Open Logs</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>OBS Route Helper</h2>
+        <button id="copyAllRoutesBtn" class="button">Copy All Routes</button>
+      </div>
+      <p id="serverUrl" class="hint"></p>
+      <div class="routes-grid">
+        <div class="route-row">
+          <span>/full</span>
+          <button data-route="/full" class="button route-btn">Open</button>
+          <button data-copy="full" class="button route-copy-btn">Copy</button>
+        </div>
+        <div class="route-row">
+          <span>/chat</span>
+          <button data-route="/chat" class="button route-btn">Open</button>
+          <button data-copy="chat" class="button route-copy-btn">Copy</button>
+        </div>
+        <div class="route-row">
+          <span>/alerts</span>
+          <button data-route="/alerts" class="button route-btn">Open</button>
+          <button data-copy="alerts" class="button route-copy-btn">Copy</button>
+        </div>
+        <div class="route-row">
+          <span>/redemptions</span>
+          <button data-route="/redemptions" class="button route-btn">Open</button>
+          <button data-copy="redemptions" class="button route-copy-btn">Copy</button>
+        </div>
+        <div class="route-row">
+          <span>/auth</span>
+          <button data-route="/auth" class="button route-btn">Open</button>
+          <button data-copy="auth" class="button route-copy-btn">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>Desktop Settings</h2>
+        <div class="inline-actions">
+          <button id="restartServerBtn" class="button" hidden>Restart Server</button>
+          <button id="saveSettingsBtn" class="button button-primary">Save Settings</button>
+        </div>
+      </div>
+      <p class="hint">Changes to port and credential paths require a server restart to take effect.</p>
+      <p id="settingsErrorText" class="field-error" hidden></p>
+
+      <div class="settings-tabs" role="tablist" aria-label="Settings Categories">
+        <button class="settings-tab active" data-tab="general" role="tab" aria-selected="true">General</button>
+        <button class="settings-tab" data-tab="paths" role="tab" aria-selected="false">Paths</button>
+        <button class="settings-tab" data-tab="obs" role="tab" aria-selected="false">OBS</button>
+      </div>
+
+      <div class="settings-panel active" data-panel="general">
+        <div class="settings-grid">
+          <label>
+            Base Host
+            <input id="baseHostInput" type="text" placeholder="localhost" />
+          </label>
+          <label>
+            Port
+            <input id="portInput" type="number" min="1" max="65535" />
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-panel" data-panel="paths" hidden>
+        <div class="settings-grid">
+          <label class="span-2 path-field">
+            .env Path
+            <div class="path-row">
+              <input id="envPathInput" type="text" />
+              <button id="browseEnvBtn" type="button" class="button">Browse</button>
+            </div>
+          </label>
+          <label class="span-2 path-field">
+            User Creds Path
+            <div class="path-row">
+              <input id="credsPathInput" type="text" />
+              <button id="browseCredsBtn" type="button" class="button">Browse</button>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-panel" data-panel="obs" hidden>
+        <div class="settings-grid">
+          <label class="checkbox span-2">
+            <input id="audioOwnerToggle" type="checkbox" />
+            <span>OBS Audio Owner Mode Enabled</span>
+          </label>
+        </div>
+      </div>
+      <p class="hint">Enable one dedicated source to play audio for queue consistency when using multiple OBS browser sources.</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>Startup Diagnostics</h2>
+        <button id="diagnosticsBtn" class="button">Run Diagnostics</button>
+      </div>
+      <ul id="diagnosticsList" class="diagnostics"></ul>
+    </section>
+  </main>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>

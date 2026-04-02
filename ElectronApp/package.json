@@ -1,0 +1,19 @@
+{
+  "name": "twitch-widgets-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "build": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^7.0.3",
+    "electron": "^35.2.0",
+    "electron-builder": "^26.0.12",
+    "wait-on": "^8.0.5"
+  }
+}

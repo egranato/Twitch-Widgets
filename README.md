@@ -1,48 +1,34 @@
-# All-in-one twitch widgets app
+# Twitch Widgets
 
-This project aims to replace streamlabs widgets as well as add some missing functionality I wish streamlabs had
+All-in-one Twitch overlay + automation stack for OBS.
 
-Do the following in order to use yourself:
+Base local URL: `http://localhost:3000`
 
-## Albedo Client (Angular)
+## Current Run Modes
 
-Provides UI widgets for use in OBS
+1. Desktop app mode (recommended): Electron control window launches and manages the server for you.
+2. Legacy/manual mode: run Node + Angular flow directly.
 
-### Setup
+## Desktop Mode (Recommended)
 
-Navigate to folder
-`cd AlbedoClient`
+### First-time setup
 
-Install dependencies
-`npm i`
+1. Install root desktop dependencies:
+	`npm install`
+2. Install Electron app dependencies:
+	`npm run desktop:install`
+3. Install server dependencies:
+	`cd NigredoServer; npm install`
+4. Install client dependencies:
+	`cd ../AlbedoClient; npm install`
+5. Build/deploy Angular output to server public folder:
+	`cd ..; ./build-and-deploy.ps1`
 
-Set up channel point rewards (optional)
-Go to `AlbedoClient/src/app/components/point-redemptions/rewards.data.ts` and add your channel point rewards
-Then to `AlbedoClient/src/assets` to add relevant files
+### Configure server secrets
 
-Type breakdown:
-'audio': expects an mp3 file in `AlbedoClient/src/assets/audio`
-'video': expects an mp4 file in `AlbedoClient/src/assets/video`
-'hybrid': expects an mp3 file in `AlbedoClient/src/assets/audio` as well as a gif in `AlbedoClient/src/assets/images`
+Create `NigredoServer/.env`:
 
-Build widget output
-`ng build`
-
-## Nigredo Server (Epress/node)
-
-Handles all interactions with twitch and uses socket.io to talk to Albedo and Rubedo
-
-### Setup
-
-Navigate to folder
-`cd NigredoServer`
-
-Install dependencies
-`npm i`
-
-Create `.env` and add environment variables
-
-```
+```env
 BOT_USERNAME=
 BOT_TOKEN=oauth:
 BOT_CHANNEL=
@@ -50,33 +36,62 @@ CLIENT_ID=
 CLIENT_SECRET=
 ```
 
-Start Server
-`npm start`
+Ensure `NigredoServer/user-creds.json` exists for your auth/session data.
 
-## First Time Set Up
+### Launch desktop app
 
-### Get latest widget code
+From repo root:
 
-Navigate to folder
-`cd AlbedoClient`
+`npm run desktop:dev`
 
-Build newest widgets
-`ng build`
+The desktop window provides:
+- Server status
+- Start/Stop server controls
+- Open overlay route buttons
+- Open logs folder action
+- Startup diagnostics
 
-Navigate to folder
-`cd ../NigredoServer`
+### OBS routes
 
-Run update script
-`npm run update`
+- Full: `http://localhost:3000/full`
+- Chat: `http://localhost:3000/chat`
+- Alerts: `http://localhost:3000/alerts`
+- Redemptions: `http://localhost:3000/redemptions`
 
-### Run Auth Flow
+## Twitch Auth Flow
 
-- Start NigredoServer (see above)
-- Navigate to `http://localhost:3000/auth` in a browser
-- Authorize With Twitch
+1. Start app/server.
+2. Open `http://localhost:3000/auth`.
+3. Authorize with Twitch.
 
-## Roadmap:
+## Channel Point Reward Media Setup (Optional)
 
-- Add Subscription alerts
+Define rewards in:
+`AlbedoClient/src/app/components/point-redemptions/rewards.data.ts`
 
-- Make into .exe for ease of use
+Media locations:
+- `audio`: `AlbedoClient/src/assets/audio` (mp3)
+- `video`: `AlbedoClient/src/assets/video` (mp4)
+- `hybrid`: audio mp3 in `audio` + gif/image in `images`
+
+## Legacy Manual Mode (Fallback)
+
+If you do not want to use Electron:
+
+1. Build client output:
+	`cd AlbedoClient; npm run build:prod`
+2. Start server:
+	`cd ../NigredoServer; npm start`
+
+## Build Scripts
+
+From repo root:
+- `npm run desktop:install`
+- `npm run desktop:dev`
+- `npm run desktop:build`
+- `npm run desktop:dist`
+
+## Logging
+
+Server logs are written to:
+`NigredoServer/output`

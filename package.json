@@ -1,0 +1,11 @@
+{
+  "name": "twitch-widgets-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "desktop:install": "npm --prefix ElectronApp install",
+    "desktop:dev": "npm --prefix ElectronApp run dev",
+    "desktop:build": "npm --prefix ElectronApp run build",
+    "desktop:dist": "npm --prefix ElectronApp run dist"
+  }
+}

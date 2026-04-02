@@ -1,0 +1,10 @@
+# Electron app dependencies
+node_modules/
+
+# Electron build artifacts
+dist/
+out/
+release/
+
+# Logs
+*.log
