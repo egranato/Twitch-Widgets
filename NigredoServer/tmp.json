@@ -1,1 +1,0 @@
-{"event" : {"flow_id" : "123456","resource" : {"error_info" : {"code" : "5","code_extended" : "0","facility" : "WsTsi [iConnectError]","text" : "Timeout ","time" : "2025-02-04 10:17:17"},"status" : "error"}}}

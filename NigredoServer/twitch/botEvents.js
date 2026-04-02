@@ -1,24 +1,18 @@
 // Twitch bot event handlers
-module.exports = function setupTwitchBotEvents(twitchBot, io, utilities, obs, gtts, mp3Duration, sleep, logger, allBadges, userCreds, user) {
+const messageFormatter = require('../services/message-formatter');
+const chatProcessor = require('../services/chat-processor');
+
+module.exports = function setupTwitchBotEvents(twitchBot, container) {
+  const { io, logger, allBadges } = container;
+
   twitchBot.on('message', (channel, data, message, self) => {
     if (self) return;
     // send chat messages to clients
-    const messageEvent = utilities.formatMessageData(
-      data,
-      message,
-      allBadges
-    );
+    const messageEvent = messageFormatter.formatMessageData(data, message, allBadges);
     io.emit('message', messageEvent);
 
     // tts
-    const filename = utilities.createMp3FileName(data.id);
-    gtts
-      .save(filename, message)
-      .then(() => obs.toggleChatHead(true))
-      .then(() => sleep(500))
-      .then(() => {
-        io.emit('tts-message', data.id);
-      });
+    chatProcessor.processTTS({ container, data, message }).catch(logger.error);
   });
 
   twitchBot.on('subscription', (channel, username, methods, message, userState) => {
@@ -58,15 +52,10 @@ module.exports = function setupTwitchBotEvents(twitchBot, io, utilities, obs, gt
   });
 
   twitchBot.on('cheer', (channel, userState, message) => {
-    // tts
-    const filename = utilities.createMp3FileName(userState.id);
-    message = `${userState['display-name']} donated ${userState.bits} bits and says "${message}"`;
-    gtts
-      .save(filename, message)
-      .then(() => obs.toggleChatHead(true))
-      .then(() => sleep(500))
-      .then(() => {
-        io.emit('tts-message', userState.id);
-      });
+    // tts for cheer
+    const cheerMessage = `${userState['display-name']} donated ${userState.bits} bits and says "${message}"`;
+    const choreData = { id: userState.id };
+    chatProcessor.processTTS({ container, data: choreData, message: cheerMessage }).catch(logger.error);
   });
 };
+

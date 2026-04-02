@@ -1,11 +1,11 @@
 // Express route for /api/authreturn
 const express = require('express');
 const router = express.Router();
-const utilities = require('../lib/utilities');
+const authService = require('../services/auth-service');
 
 router.get('/authreturn', (req, res) => {
   const { code } = req.query;
-  utilities
+  authService
     .getUserCreds(code)
     .then((_) => {
       res.send(`<h1>Good to go!</h1>`);

@@ -1,12 +1,17 @@
 // Twitch PubSub (WebSocket) event handling and subscription logic
 const WebSocketClient = require('websocket').client;
+const twitchApi = require('../services/twitch-api');
+const authService = require('../services/auth-service');
+const rewardProcessor = require('../services/reward-processor');
 
-module.exports = function setupTwitchPubSub(utilities, logger, obs, io, userCreds, user, sleep) {
+module.exports = function setupTwitchPubSub(container) {
+  const { logger, user, sleep } = container;
+  let userCreds = container.userCreds;
   const twitchClient = new WebSocketClient();
 
   const subscribeToFollow = (sessionId) => {
     return new Promise((resolve, reject) => {
-      utilities
+      twitchApi
         .subscribeToFollow(userCreds.access_token, sessionId, user.id)
         .then((_) => {
           logger.info('Twitch Client Subscribed to Follow Events');
@@ -14,10 +19,12 @@ module.exports = function setupTwitchPubSub(utilities, logger, obs, io, userCred
         })
         .catch((error) => {
           if (error.response && error.response.status === 401) {
-            utilities
+            authService
               .refreshUserCreds(userCreds.refresh_token)
               .then((newUserCreds) => {
                 userCreds = newUserCreds;
+                // Update userCreds in container so other handlers have fresh token
+                container.userCreds = newUserCreds;
                 logger.info('Refreshed OAuth Token');
                 return subscribeToFollow(sessionId);
               })
@@ -33,16 +40,41 @@ module.exports = function setupTwitchPubSub(utilities, logger, obs, io, userCred
   };
 
   const subscribeToChannelPointRedemptions = (sessionId) => {
-    utilities
-      .subscribeToChannelPointRedemptions(
-        userCreds.access_token,
-        sessionId,
-        user.id
-      )
+    twitchApi
+      .subscribeToChannelPointRedemptions(userCreds.access_token, sessionId, user.id)
       .then((_) => {
         logger.info('Twitch Client Subscribed to Channel Point Reward Events');
       })
-      .catch(logger.error);
+      .catch((error) => logger.error('Failed to subscribe to channel points:', error));
+  };
+
+  const completeChannelPointRewardRequestWithRefresh = (channelId, id, rewardId, success = true) => {
+    return twitchApi
+      .completeChannelPointRewardRequest(userCreds.access_token, channelId, id, rewardId, success)
+      .catch((error) => {
+        if (error.response && error.response.status === 401) {
+          return authService
+            .refreshUserCreds(userCreds.refresh_token)
+            .then((newUserCreds) => {
+              userCreds = newUserCreds;
+              container.userCreds = newUserCreds;
+              logger.info('Refreshed OAuth Token');
+              return twitchApi.completeChannelPointRewardRequest(
+                userCreds.access_token,
+                channelId,
+                id,
+                rewardId,
+                success
+              );
+            })
+            .catch((refreshError) => {
+              logger.error('Failed to refresh token or retry reward completion: ' + refreshError);
+              throw refreshError;
+            });
+        } else {
+          throw error;
+        }
+      });
   };
 
   twitchClient.on('connectFailed', function (error) {
@@ -68,62 +100,29 @@ module.exports = function setupTwitchPubSub(utilities, logger, obs, io, userCred
             case 'channel.follow':
               const newFollower = messageData.payload.event.user_name;
               logger.info(`New Follower: ${newFollower}`);
-              io.emit('follow', newFollower);
+              container.io.emit('follow', newFollower);
               break;
+
             case 'channel.channel_points_custom_reward_redemption.add':
               const event = messageData.payload.event;
-              logger.info(`Point redemption: ${event.reward.title}`);
-              const clientCount = io.engine.clientsCount;
-              switch (event.reward.title) {
-                case 'Replace Gameplay with Penguins':
-                  const processPenguins = async () => {
-                    // show penguins
-                    var success = await obs.penguins(true);
-                    if (!success) throw new Error('could not find video to show');
-                    // wait
-                    await sleep(180000); // 3 minutes
-                    // hide penguins
-                    success = await obs.penguins(false);
-                    if (!success) throw new Error('could not find video to show');
-                  };
-                  processPenguins()
-                    .then(() => {
-                      utilities
-                        .completeChannelPointRewardRequest(
-                          userCreds.access_token,
-                          user.id,
-                          event.id,
-                          event.reward.id
-                        )
-                        .catch(logger.error);
-                    })
-                    .catch((error) => {
-                      logger.error(error);
-                      utilities
-                        .completeChannelPointRewardRequest(
-                          userCreds.access_token,
-                          user.id,
-                          event.id,
-                          event.reward.id,
-                          false
-                        )
-                        .catch(logger.error);
-                    });
-                  break;
-                default:
-                  if (clientCount > 0) {
-                    io.emit('point-redeem', event);
-                  } else {
-                    utilities
-                      .completeChannelPointRewardRequest(
-                        userCreds.access_token,
-                        user.id,
-                        event.id,
-                        event.reward.id,
-                        false
-                      )
-                      .catch(logger.error);
-                  }
+
+              try {
+                const result = await rewardProcessor.processReward({ container, event });
+
+                if (result.success) {
+                  // Mark as fulfilled
+                  completeChannelPointRewardRequestWithRefresh(user.id, event.id, event.reward.id, true)
+                    .catch((error) => logger.error('Failed to mark reward fulfilled: ' + error));
+                } else if (result.autoCancel) {
+                  // Auto-cancel if no clients
+                  completeChannelPointRewardRequestWithRefresh(user.id, event.id, event.reward.id, false)
+                    .catch((error) => logger.error('Failed to cancel reward: ' + error));
+                }
+              } catch (error) {
+                logger.error('Error processing reward:', error);
+                // Try to cancel on error
+                completeChannelPointRewardRequestWithRefresh(user.id, event.id, event.reward.id, false)
+                  .catch((error) => logger.error('Failed to cancel reward after error: ' + error));
               }
               break;
           }
@@ -133,7 +132,7 @@ module.exports = function setupTwitchPubSub(utilities, logger, obs, io, userCred
             .then((_) => {
               subscribeToChannelPointRedemptions(sessionId);
             })
-            .catch(logger.error);
+            .catch((error) => logger.error('Failed during pubsub subscription setup:', error));
         }
       }
     });
@@ -142,3 +141,4 @@ module.exports = function setupTwitchPubSub(utilities, logger, obs, io, userCred
   // connect to twitch pubsub socket
   twitchClient.connect('wss://eventsub.wss.twitch.tv/ws');
 };
+

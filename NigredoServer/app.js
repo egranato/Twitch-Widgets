@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const socketio = require('socket.io');
 const twitchBot = require('./lib/tmi-bot');
-const utilities = require('./lib/utilities');
 const logger = require('./lib/logger');
 const path = require('path');
 const cors = require('cors');
@@ -13,6 +12,11 @@ const mp3Duration = require('./lib/mp3-duration');
 const obs = require('./lib/obs');
 const sleep = require('./utils/sleep');
 
+// Services
+const authService = require('./services/auth-service');
+const twitchApi = require('./services/twitch-api');
+const createContainer = require('./services/container');
+
 const app = express();
 const server = require('http').createServer(app);
 // CORS for Angular dev
@@ -20,10 +24,10 @@ app.use(cors({ origin: 'http://localhost:4200' }));
 
 
 // get global items that will be necessary for functioning later
-utilities
+authService
   .getAppCreds()
-  .then((appToken) => Promise.all([utilities.getUserData(appToken), appToken]))
-  .then(([user, appToken]) => Promise.all([user, utilities.getBadges(appToken, user.id)]))
+  .then((appToken) => Promise.all([twitchApi.getUserData(appToken), appToken]))
+  .then(([user, appToken]) => Promise.all([user, twitchApi.getBadges(appToken, user.id)]))
   .then(([user, allBadges]) => {
     if (!fs.existsSync('user-creds.json')) {
       logger.warning('NO USER CREDS FOUND PLEASE RUN AUTH FLOW: http://localhost:3000/auth');
@@ -34,14 +38,27 @@ utilities
     // socket server to talk to widgets and tts client
     const io = new socketio.Server(server, { cors: { origin: 'http://localhost:4200' } });
 
+    // Create dependency container
+    const container = createContainer({
+      io,
+      logger,
+      obs,
+      gtts,
+      mp3Duration,
+      sleep,
+      userCreds,
+      user,
+      allBadges,
+    });
+
     // Socket.io event handlers
-    require('./sockets/index')(io, utilities, obs, gtts, mp3Duration, sleep, logger, userCreds, user, allBadges);
+    require('./sockets/index')(container);
 
     // Twitch bot event handlers
-    require('./twitch/botEvents')(twitchBot, io, utilities, obs, gtts, mp3Duration, sleep, logger, allBadges, userCreds, user);
+    require('./twitch/botEvents')(twitchBot, container);
 
     // Twitch PubSub (WebSocket) event handling
-    require('./twitch/pubsub')(utilities, logger, obs, io, userCreds, user, sleep);
+    require('./twitch/pubsub')(container);
   });
 
 
