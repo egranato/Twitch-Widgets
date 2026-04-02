@@ -116,9 +116,54 @@
             <input id="audioOwnerToggle" type="checkbox" />
             <span>OBS Audio Owner Mode Enabled</span>
           </label>
+          <label class="checkbox span-2">
+            <input id="obsAutoOpenFullToggle" type="checkbox" />
+            <span>Auto-open /full route after server starts</span>
+          </label>
+          <label class="checkbox span-2">
+            <input id="obsShowSizeHintsToggle" type="checkbox" />
+            <span>Show OBS size hints for 1080p layouts</span>
+          </label>
+        </div>
+        <div id="obsSizeHints" class="size-hints">
+          <p><strong>Suggested 1080p source sizes</strong></p>
+          <p>Chat: 650x760 | Alerts: 700x400 | Redemptions: 820x420 | Full overlay: 1920x1080</p>
         </div>
       </div>
       <p class="hint">Enable one dedicated source to play audio for queue consistency when using multiple OBS browser sources.</p>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>Stream-Day Quick Setup</h2>
+      </div>
+      <div class="checklist-grid">
+        <div class="check-row">
+          <span>Server running</span>
+          <span id="checkServerStatus" class="mini-badge pending">Pending</span>
+          <button id="quickStartServerBtn" class="button">Start</button>
+        </div>
+        <div class="check-row">
+          <span>.env configured</span>
+          <span id="checkEnvStatus" class="mini-badge pending">Pending</span>
+          <button id="quickOpenSettingsPathsBtn" class="button">Fix</button>
+        </div>
+        <div class="check-row">
+          <span>User creds available</span>
+          <span id="checkCredsStatus" class="mini-badge pending">Pending</span>
+          <button id="quickOpenSettingsCredsBtn" class="button">Fix</button>
+        </div>
+        <div class="check-row">
+          <span>Twitch auth flow completed</span>
+          <span id="checkAuthStatus" class="mini-badge pending">Pending</span>
+          <button id="quickOpenAuthBtn" class="button">Open /auth</button>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <button id="quickRunDiagnosticsBtn" class="button">Run Diagnostics</button>
+        <button id="quickOpenFullBtn" class="button">Open /full</button>
+        <button id="quickCopyRoutesBtn" class="button">Copy Routes</button>
+      </div>
     </section>
 
     <section class="card">

@@ -92,6 +92,23 @@ body {
   margin-top: 10px;
 }
 
+.size-hints {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed #bcd4ef;
+  border-radius: 10px;
+  background: #f6fbff;
+  color: var(--ink-1);
+}
+
+.size-hints p {
+  margin: 0;
+}
+
+.size-hints p + p {
+  margin-top: 6px;
+}
+
 .label {
   color: var(--ink-1);
   font-weight: 600;
@@ -148,6 +165,53 @@ body {
 .routes-grid {
   margin-top: 12px;
   display: grid;
+  gap: 8px;
+}
+
+.checklist-grid {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.check-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fbfdff;
+}
+
+.mini-badge {
+  display: inline-block;
+  min-width: 90px;
+  text-align: center;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.mini-badge.ok {
+  color: var(--ok);
+  border-color: #b7e6c8;
+  background: #ecf9f0;
+}
+
+.mini-badge.warn,
+.mini-badge.pending {
+  color: var(--warn);
+  border-color: #f2deaf;
+  background: #fff8e8;
+}
+
+.quick-actions {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -303,5 +367,13 @@ body {
 
   .route-row {
     grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .check-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr;
   }
 }

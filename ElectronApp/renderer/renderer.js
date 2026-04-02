@@ -17,10 +17,26 @@ const portInput = document.getElementById('portInput');
 const envPathInput = document.getElementById('envPathInput');
 const credsPathInput = document.getElementById('credsPathInput');
 const audioOwnerToggle = document.getElementById('audioOwnerToggle');
+const obsAutoOpenFullToggle = document.getElementById('obsAutoOpenFullToggle');
+const obsShowSizeHintsToggle = document.getElementById('obsShowSizeHintsToggle');
+const obsSizeHints = document.getElementById('obsSizeHints');
 const browseEnvBtn = document.getElementById('browseEnvBtn');
 const browseCredsBtn = document.getElementById('browseCredsBtn');
 const settingsTabs = document.querySelectorAll('.settings-tab');
 const settingsPanels = document.querySelectorAll('.settings-panel');
+
+const checkServerStatus = document.getElementById('checkServerStatus');
+const checkEnvStatus = document.getElementById('checkEnvStatus');
+const checkCredsStatus = document.getElementById('checkCredsStatus');
+const checkAuthStatus = document.getElementById('checkAuthStatus');
+
+const quickStartServerBtn = document.getElementById('quickStartServerBtn');
+const quickOpenSettingsPathsBtn = document.getElementById('quickOpenSettingsPathsBtn');
+const quickOpenSettingsCredsBtn = document.getElementById('quickOpenSettingsCredsBtn');
+const quickOpenAuthBtn = document.getElementById('quickOpenAuthBtn');
+const quickRunDiagnosticsBtn = document.getElementById('quickRunDiagnosticsBtn');
+const quickOpenFullBtn = document.getElementById('quickOpenFullBtn');
+const quickCopyRoutesBtn = document.getElementById('quickCopyRoutesBtn');
 
 let latestState = null;
 
@@ -49,6 +65,40 @@ function markFieldInvalid(field, invalid) {
     return;
   }
   field.classList.toggle('input-invalid', invalid);
+}
+
+function setMiniBadge(element, ok, pendingLabel, okLabel = 'Ready') {
+  element.classList.remove('ok', 'warn', 'pending');
+  if (ok) {
+    element.classList.add('ok');
+    element.textContent = okLabel;
+    return;
+  }
+
+  element.classList.add('warn');
+  element.textContent = pendingLabel;
+}
+
+function diagnosticIncludes(fragment) {
+  if (!latestState || !Array.isArray(latestState.diagnostics)) {
+    return false;
+  }
+
+  return latestState.diagnostics.some((d) => String(d.message || '').includes(fragment));
+}
+
+function updateQuickSetupChecklist(state) {
+  const serverOk = state.serverStatus === 'running';
+  const envOk = !diagnosticIncludes('Missing .env');
+  const credsOk = !diagnosticIncludes('Missing user-creds.json');
+  const authOk = credsOk;
+
+  setMiniBadge(checkServerStatus, serverOk, 'Start needed', 'Running');
+  setMiniBadge(checkEnvStatus, envOk, 'Missing');
+  setMiniBadge(checkCredsStatus, credsOk, 'Missing');
+  setMiniBadge(checkAuthStatus, authOk, 'Run auth', 'Ready');
+
+  quickStartServerBtn.disabled = serverOk || state.serverStatus === 'starting';
 }
 
 function setStatus(status) {
@@ -109,6 +159,7 @@ function render(state) {
   setDiagnostics(state.diagnostics || []);
   renderSettings(state.settings || {});
   restartServerBtn.hidden = !state.settingsRestartRequired;
+  updateQuickSetupChecklist(state);
 }
 
 function renderSettings(settings) {
@@ -117,6 +168,9 @@ function renderSettings(settings) {
   envPathInput.value = settings.envFilePath || '';
   credsPathInput.value = settings.userCredsPath || '';
   audioOwnerToggle.checked = Boolean(settings.obsAudioOwnerMode);
+  obsAutoOpenFullToggle.checked = Boolean(settings.obsAutoOpenFullOnStart);
+  obsShowSizeHintsToggle.checked = Boolean(settings.obsShowSizeHints);
+  obsSizeHints.hidden = !obsShowSizeHintsToggle.checked;
 }
 
 async function hydrate() {
@@ -131,6 +185,8 @@ function getSettingsPayload() {
     envFilePath: String(envPathInput.value || '').trim(),
     userCredsPath: String(credsPathInput.value || '').trim(),
     obsAudioOwnerMode: audioOwnerToggle.checked,
+    obsAutoOpenFullOnStart: obsAutoOpenFullToggle.checked,
+    obsShowSizeHints: obsShowSizeHintsToggle.checked,
   };
 }
 
@@ -267,6 +323,45 @@ browseCredsBtn.addEventListener('click', async () => {
 
 copyAllRoutesBtn.addEventListener('click', async () => {
   await copyRoutesSummary();
+});
+
+quickStartServerBtn.addEventListener('click', async () => {
+  await window.desktopAPI.startServer();
+});
+
+quickOpenSettingsPathsBtn.addEventListener('click', () => {
+  activateSettingsTab('paths');
+});
+
+quickOpenSettingsCredsBtn.addEventListener('click', () => {
+  activateSettingsTab('paths');
+});
+
+quickOpenAuthBtn.addEventListener('click', async () => {
+  await window.desktopAPI.openOverlay('/auth');
+});
+
+quickRunDiagnosticsBtn.addEventListener('click', async () => {
+  const result = await window.desktopAPI.runDiagnostics();
+  if (result.ok) {
+    setDiagnostics(result.diagnostics || []);
+    if (latestState) {
+      latestState.diagnostics = result.diagnostics || [];
+      updateQuickSetupChecklist(latestState);
+    }
+  }
+});
+
+quickOpenFullBtn.addEventListener('click', async () => {
+  await window.desktopAPI.openOverlay('/full');
+});
+
+quickCopyRoutesBtn.addEventListener('click', async () => {
+  await copyRoutesSummary();
+});
+
+obsShowSizeHintsToggle.addEventListener('change', () => {
+  obsSizeHints.hidden = !obsShowSizeHintsToggle.checked;
 });
 
 saveSettingsBtn.addEventListener('click', async () => {

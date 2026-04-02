@@ -30,6 +30,8 @@ const DEFAULT_SETTINGS = {
   envFilePath: path.resolve(SERVER_CWD, '.env'),
   userCredsPath: path.resolve(SERVER_CWD, 'user-creds.json'),
   obsAudioOwnerMode: true,
+  obsAutoOpenFullOnStart: false,
+  obsShowSizeHints: true,
 };
 
 const ROUTE_PATHS = {
@@ -98,6 +100,8 @@ function sanitizeSettings(raw) {
     envFilePath,
     userCredsPath,
     obsAudioOwnerMode: Boolean(normalized.obsAudioOwnerMode),
+    obsAutoOpenFullOnStart: Boolean(normalized.obsAutoOpenFullOnStart),
+    obsShowSizeHints: Boolean(normalized.obsShowSizeHints),
   };
 }
 
@@ -296,6 +300,12 @@ async function startServerProcess() {
 
   await waitForServer(getServerBaseUrl());
   updateState({ serverStatus: 'running', lastError: '', settingsRestartRequired: false });
+
+  if (settings.obsAutoOpenFullOnStart) {
+    shell.openExternal(getRouteUrl(ROUTE_PATHS.full)).catch(() => {
+      // Ignore browser launch failures to keep server startup resilient.
+    });
+  }
 }
 
 function probeServer(url) {

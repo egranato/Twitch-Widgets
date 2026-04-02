@@ -6,7 +6,8 @@ Package the Twitch Widgets project as a Windows desktop app so streaming workflo
 ## Current Status (April 2, 2026)
 - Milestone 1: Completed
 - Milestone 2: Completed
-- Active Focus: Milestone 3 (In Progress)
+- Milestone 3: Completed
+- Active Focus: Milestone 4
 
 ## Success Criteria
 - Desktop app starts with a double-click and launches services reliably.
@@ -82,7 +83,7 @@ Status: Completed
 - Main-process uncaught error/rejection handling added with dialogs.
 
 ## Milestone 3 - Configuration and OBS Experience
-Status: In Progress
+Status: Completed
 
 ### Progress Snapshot
 - Completed:
@@ -95,12 +96,16 @@ Status: In Progress
    - Validation for settings fields (host/port/paths).
    - OBS audio-owner mode toggle persisted in settings.
    - Tabbed settings UX (General / Paths / OBS) implemented.
+    - Additional OBS toggles implemented:
+       - Auto-open `/full` after server start
+       - Show/hide OBS 1080p size hints
+    - Stream-Day quick setup checklist with status indicators and actions implemented.
 - Remaining:
-   - Expand OBS integration toggles beyond audio-owner guidance.
-   - Final UX pass for stream-day quick setup flow.
+   - None for Milestone 3.
 
 ### Recent Update
 - Added file-picker UX for `.env` and `user-creds.json` paths in desktop settings.
+- Added stream-day checklist card and expanded OBS settings toggles.
 
 ### Outcomes
 - Streamer-friendly settings management.
@@ -125,9 +130,11 @@ Status: In Progress
 - No manual editing needed for normal setup changes.
 - OBS source URLs are easy to discover and copy.
 
-### Completion Notes (In Progress)
+### Completion Notes
 - Settings are stored in Electron user data as `desktop-settings.json`.
 - NigredoServer now respects `PORT` and `USER_CREDS_PATH` from desktop runtime config.
+- Desktop checklist provides one-click actions for start, diagnostics, auth, and route helpers.
+- OBS tab now includes optional automatic opening of `/full` on server start.
 
 ## Milestone 4 - Build, Signing, and Distribution
 ### Outcomes
