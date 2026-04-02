@@ -129,6 +129,17 @@ module.exports = function setupTwitchPubSub(container) {
               const newFollower = messageData.payload.event.user_name;
               logger.info(`New Follower: ${newFollower}`);
               container.io.emit('follow', newFollower);
+              // Enqueue follow alert sound
+              if (container.audioManagerHandlers) {
+                container.audioManagerHandlers.enqueueAudio({
+                  type: 'follow',
+                  filePath: '/assets/audio/follow.mp3',
+                  volume: 0.85,
+                  priority: 'normal',
+                  cooldownMs: 3000, // Avoid rapid-fire follows
+                  label: `Follow from ${newFollower}`,
+                });
+              }
               break;
 
             case 'channel.channel_points_custom_reward_redemption.add':

@@ -45,10 +45,30 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
 
   twitchBot.on('subscription', (channel, username, methods, message, userState) => {
     io.emit('subscription', userState['system-msg']);
+    // Enqueue subscription alert sound
+    if (container.audioManagerHandlers) {
+      container.audioManagerHandlers.enqueueAudio({
+        type: 'subscription',
+        filePath: '/assets/audio/subscription.mp3',
+        volume: 0.9,
+        priority: 'high',
+        label: `Subscription from ${username}`,
+      });
+    }
   });
 
   twitchBot.on('resub', (channel, username, months, message, userState, methods) => {
     io.emit('subscription', userState['system-msg']);
+    // Enqueue resub alert sound
+    if (container.audioManagerHandlers) {
+      container.audioManagerHandlers.enqueueAudio({
+        type: 'subscription',
+        filePath: '/assets/audio/subscription.mp3',
+        volume: 0.9,
+        priority: 'high',
+        label: `Resub from ${username}`,
+      });
+    }
   });
 
   twitchBot.on('anonsubgift', (channel, streakMonths, recipient, methods, userState) => {
@@ -84,6 +104,17 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
     const cheerMessage = `${userState['display-name']} donated ${userState.bits} bits and says "${message}"`;
     const choreData = { id: userState.id };
     chatProcessor.processTTS({ container, data: choreData, message: cheerMessage }).catch(logger.error);
+
+    // Enqueue cheer alert sound (high priority)
+    if (container.audioManagerHandlers) {
+      container.audioManagerHandlers.enqueueAudio({
+        type: 'cheer',
+        filePath: '/assets/audio/shotgun.mp3',
+        volume: 0.95,
+        priority: 'high',
+        label: `Cheer from ${userState['display-name']} (${userState.bits} bits)`,
+      });
+    }
   });
 };
 

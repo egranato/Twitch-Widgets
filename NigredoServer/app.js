@@ -58,6 +58,10 @@ authService
     // Socket.io event handlers
     require('./sockets/index')(container);
 
+    // Audio Manager socket handlers
+    const audioManagerHandlers = require('./sockets/audio-manager')(container);
+    container.audioManagerHandlers = audioManagerHandlers;
+
     // Twitch bot event handlers
     require('./twitch/botEvents')(twitchBot, container);
 
@@ -69,8 +73,10 @@ authService
 // Express routes
 const clientIdRoute = require('./routes/clientId');
 const authRoute = require('./routes/auth');
+const audioManagerRoute = require('./routes/audio-manager');
 app.use('/api', clientIdRoute);
 app.use('/api', authRoute);
+app.use('/', audioManagerRoute);
 app.use(express.static('public/'));
 app.get('*', (req, res) => {
   res.sendFile(path.resolve('public/index.html'));

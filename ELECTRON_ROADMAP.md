@@ -7,7 +7,7 @@ Package the Twitch Widgets project as a Windows desktop app so streaming workflo
 - Milestone 1: Completed
 - Milestone 2: Completed
 - Milestone 3: Completed
-- Active Focus: Milestone 4
+- Active Focus: Audio Reliability Feature Roadmap (new)
 
 ## Success Criteria
 - Desktop app starts with a double-click and launches services reliably.
@@ -96,10 +96,10 @@ Status: Completed
    - Validation for settings fields (host/port/paths).
    - OBS audio-owner mode toggle persisted in settings.
    - Tabbed settings UX (General / Paths / OBS) implemented.
-    - Additional OBS toggles implemented:
-       - Auto-open `/full` after server start
-       - Show/hide OBS 1080p size hints
-    - Stream-Day quick setup checklist with status indicators and actions implemented.
+   - Additional OBS toggles implemented:
+      - Auto-open `/full` after server start
+      - Show/hide OBS 1080p size hints
+   - Stream-Day quick setup checklist with status indicators and actions implemented.
 - Remaining:
    - None for Milestone 3.
 
@@ -135,6 +135,85 @@ Status: Completed
 - NigredoServer now respects `PORT` and `USER_CREDS_PATH` from desktop runtime config.
 - Desktop checklist provides one-click actions for start, diagnostics, auth, and route helpers.
 - OBS tab now includes optional automatic opening of `/full` on server start.
+
+## Feature Roadmap - Audio Reliability (OBS-First + Electron Fallback)
+Status: Planned (Start Next)
+
+### Objective
+Create a single, predictable audio path for alerts by defaulting to OBS-hosted playback, while preserving a safe Electron playback fallback if OBS browser audio fails.
+
+### Why This Direction
+- Reduces duplicated audio behavior across widget routes.
+- Improves stream-day reliability with one persistent OBS audio source.
+- Keeps a fallback path so alerts are never silent.
+
+### Phase A - Unified OBS Audio Manager Route
+#### Outcomes
+- A dedicated always-on audio manager route in NigredoServer handles alert sound playback.
+- Alert routes publish audio events to one queue rather than playing local audio independently.
+
+#### Tasks
+1. Add a dedicated route (for example: `/audio-manager`) that can receive/play queued audio events.
+2. Add a server-side audio event queue service with:
+   - event id
+   - file path
+   - volume
+   - priority
+   - cooldown/debounce support
+3. Refactor alert/reward/chat audio emitters to publish queue events instead of direct playback.
+4. Add a desktop helper action to open/copy the new OBS audio route.
+5. Add minimal queue diagnostics in desktop UI (queue length, last played event, errors).
+
+#### Exit Criteria
+- All alert audio is audible through one OBS browser source using `/audio-manager`.
+- No double-playback occurs when OBS mode is active.
+
+### Phase B - Electron Fallback and Failover
+#### Outcomes
+- Automatic fallback to Electron playback when OBS audio manager is unavailable.
+- Manual override toggle for stream troubleshooting.
+
+#### Tasks
+1. Add heartbeat/health checks between desktop app and `/audio-manager`.
+2. Add failover policy:
+   - Primary: OBS audio manager
+   - Fallback: Electron local playback
+3. Add settings toggle for fallback mode (`auto`, `obs-only`, `electron-only`).
+4. Add status indicator in desktop UI showing active audio path.
+5. Log failover transitions for troubleshooting.
+
+#### Exit Criteria
+- If OBS audio route breaks, alerts still play through Electron within one event cycle.
+- User can force audio path mode from settings without restarting app.
+
+### Phase C - Mix Safety and Stream-Day Controls
+#### Outcomes
+- Safer default levels and cleaner mix behavior in OBS.
+- Faster pre-stream checks for audio readiness.
+
+#### Tasks
+1. Add per-event volume profiles (alerts, redemptions, TTS, misc).
+2. Add optional limiter-safe output cap guidance in UI text.
+3. Add one-click audio test sequence from desktop checklist.
+4. Add quick mute/unmute all alert audio action.
+5. Add diagnostics export entries for recent audio errors/events.
+
+#### Exit Criteria
+- Stream-day audio test confirms both primary and fallback paths.
+- No clipping or silent-failure regressions in test session.
+
+### Validation Plan
+1. Start desktop app and server.
+2. Add `/audio-manager` as OBS browser source audio input.
+3. Trigger sample events: cheer, sub/resub, redemption, TTS.
+4. Verify queue ordering and per-event volume behavior.
+5. Simulate OBS route failure and verify auto failover to Electron.
+6. Restore OBS route and verify return to primary path (if in `auto`).
+
+### Implementation Order
+1. Phase A (route + queue + event publisher refactor)
+2. Phase B (health checks + failover)
+3. Phase C (mix tooling + checklist)
 
 ## Milestone 4 - Build, Signing, and Distribution
 ### Outcomes
@@ -190,10 +269,11 @@ Status: Completed
 ## Suggested Execution Order
 1. Milestone 1
 2. Milestone 2
-3. Milestone 4
-4. Milestone 3
-5. Milestone 5
-6. Milestone 6
+3. Milestone 3
+4. Feature Roadmap - Audio Reliability
+5. Milestone 4
+6. Milestone 5
+7. Milestone 6
 
 ## Tracking Template
 Use this lightweight template each time work starts on a milestone.
