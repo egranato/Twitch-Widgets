@@ -64,10 +64,18 @@ const completeChannelPointRewardRequest = (token, channelId, id, rewardId, succe
         headers: getApiHeaders(token),
       })
       .then(({ data }) => {
-        resolve(data.data);
+        resolve(data.data ? data.data[0] : data);
       })
       .catch((error) => {
-        reject(error);
+        const errorInfo = {
+          message: error.message,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          url: url,
+          body: body,
+        };
+        reject(Object.assign(error, { debugInfo: errorInfo }));
       });
   });
 };

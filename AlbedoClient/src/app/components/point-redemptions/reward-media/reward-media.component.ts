@@ -48,6 +48,8 @@ export class RewardMediaComponent implements OnInit {
   runAudio(name: string): void {
     this.audioService.playAudio(name).then((_) => {
       this.complete();
+    }).catch(() => {
+      this.complete();
     });
   }
 }

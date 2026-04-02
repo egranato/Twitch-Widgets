@@ -1,19 +1,14 @@
 // Socket.io event handlers
-const twitchApi = require('../services/twitch-api');
 const commonUtils = require('../services/common-utils');
 
 module.exports = function setupSocketHandlers(container) {
-  const { io, logger, userCreds, user } = container;
+  const { io, logger, user } = container;
 
   io.on('connection', (connection) => {
     logger.info('IO Client Connected!');
 
-    // tell twitch we've fulfilled the channel point reward
-    connection.on('point-fulfill', ({ id, rewardId }) => {
-      twitchApi
-        .completeChannelPointRewardRequest(userCreds.access_token, user.id, rewardId, id)
-        .catch((error) => logger.error('Failed to fulfill reward:', error));
-    });
+    // Note: Channel point reward fulfillment is now handled automatically by the PubSub handler
+    // No need for the client to manually fulfill rewards
 
     // delete tts generated mp3
     connection.on('tts-complete', (id) => {

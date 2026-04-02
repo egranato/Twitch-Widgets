@@ -66,16 +66,24 @@ module.exports = function setupTwitchPubSub(container) {
   };
 
   const completeChannelPointRewardRequestWithRefresh = (channelId, id, rewardId, success = true) => {
+    logger.info(`Attempting to mark reward as ${success ? 'FULFILLED' : 'CANCELED'} - ID: ${id}, RewardID: ${rewardId}`);
     return twitchApi
       .completeChannelPointRewardRequest(userCreds.access_token, channelId, id, rewardId, success)
       .catch((error) => {
-        if (error.response && error.response.status === 401) {
+        const debugInfo = error.debugInfo || {};
+        const status = debugInfo.status || error.response?.status;
+        const errorMsg = debugInfo.data?.message || error.message || 'Unknown error';
+
+        logger.error(`API Error: Status ${status} - ${errorMsg} - URL: ${debugInfo.url}`);
+
+        if (status === 401) {
+          logger.info('Token expired, attempting refresh...');
           return authService
             .refreshUserCreds(userCreds.refresh_token)
             .then((newUserCreds) => {
               userCreds = newUserCreds;
               container.userCreds = newUserCreds;
-              logger.info('Refreshed OAuth Token');
+              logger.info('OAuth Token refreshed, retrying reward completion');
               return twitchApi.completeChannelPointRewardRequest(
                 userCreds.access_token,
                 channelId,
@@ -85,9 +93,12 @@ module.exports = function setupTwitchPubSub(container) {
               );
             })
             .catch((refreshError) => {
-              logger.error('Failed to refresh token or retry reward completion: ' + refreshError);
+              logger.error(`Failed to refresh token or retry: ${refreshError.message}`);
               throw refreshError;
             });
+        } else if (status === 422) {
+          logger.warning(`Reward already processed (422): ${id}`);
+          return { already_completed: true };
         } else {
           throw error;
         }
@@ -123,90 +134,76 @@ module.exports = function setupTwitchPubSub(container) {
             case 'channel.channel_points_custom_reward_redemption.add':
               const event = messageData.payload.event;
               const rewardId = event.id;
-
-              try {
-                // Track this reward for timeout monitoring
-                pendingRewardsManager.trackReward(event);
-
-                const result = await rewardProcessor.processReward({ container, event });
-
-                if (result.success) {
-                  // Mark as fulfilled
-                  pendingRewardsManager.completeReward(rewardId);
-                  retryWithBackoff(() =>
-                    completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, true)
-                  )
-                    .then(() => {
-                      logger.info(`Reward fulfilled: ${event.reward.title} (ID: ${rewardId})`);
-                      pendingRewardsManager.cleanup(rewardId);
-                    })
-                    .catch((error) => {
-                      logger.error(`Failed to mark reward fulfilled after retries: ${error.message}`);
-                      pendingRewardsManager.cleanup(rewardId);
-                    });
-                } else if (result.autoCancel) {
-                  // Auto-cancel if no clients
-                  logger.warning(`Auto-canceling reward: ${event.reward.title} (ID: ${rewardId}) - no clients connected`);
-                  retryWithBackoff(() =>
-                    completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
-                  )
-                    .then(() => {
-                      logger.info(`Reward canceled (refunded): ${event.reward.title} (ID: ${rewardId})`);
-                      pendingRewardsManager.cleanup(rewardId);
-                    })
-                    .catch((error) => {
-                      logger.error(`Failed to cancel reward after retries: ${error.message}`);
-                      pendingRewardsManager.cleanup(rewardId);
-                    });
-                } else if (result.success === false) {
-                  // Explicit failure, refund points
-                  logger.warning(`Reward processing failed: ${event.reward.title} (ID: ${rewardId}) - Refunding`);
-                  retryWithBackoff(() =>
-                    completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
-                  )
-                    .then(() => {
-                      logger.info(`Reward refunded: ${event.reward.title} (ID: ${rewardId})`);
-                      pendingRewardsManager.cleanup(rewardId);
-                    })
-                    .catch((error) => {
-                      logger.error(`Failed to refund reward after retries: ${error.message}`);
-                      pendingRewardsManager.cleanup(rewardId);
-                    });
-                }
-
-                // Monitor for timeout - refund if it occurs
-                const timeoutCheck = setInterval(() => {
-                  if (pendingRewardsManager.shouldRefund(rewardId)) {
-                    clearInterval(timeoutCheck);
-                    logger.warning(`Timeout refunding: ${event.reward.title} (ID: ${rewardId})`);
-                    retryWithBackoff(() =>
-                      completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
-                    )
-                      .then(() => {
-                        logger.info(`Reward timeout-refunded: ${event.reward.title} (ID: ${rewardId})`);
-                        pendingRewardsManager.cleanup(rewardId);
-                      })
-                      .catch((error) => {
-                        logger.error(`Failed to timeout-refund reward after retries: ${error.message}`);
-                        pendingRewardsManager.cleanup(rewardId);
-                      });
-                  }
-                }, 1000);
-              } catch (error) {
-                logger.error(`Error processing reward: ${error.message}`);
-                // Try to cancel on error
-                retryWithBackoff(() =>
-                  completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
-                )
-                  .then(() => {
-                    logger.info(`Reward error-refunded: ${event.reward.title} (ID: ${rewardId})`);
-                    pendingRewardsManager.cleanup(rewardId);
-                  })
-                  .catch((retryError) => {
-                    logger.error(`Failed to error-refund reward after retries: ${retryError.message}`);
-                    pendingRewardsManager.cleanup(rewardId);
-                  });
+              let alreadyProcessing = pendingRewardsManager.getRewardInfo(rewardId);
+              
+              if (alreadyProcessing && alreadyProcessing.completed) {
+                logger.warning(`Duplicate reward event - already processed: ${event.reward.title} (ID: ${rewardId})`);
+                break;
               }
+
+              (async () => {
+                try {
+                  logger.info(`Received reward redemption: ${event.reward.title} from ${event.user_name} (ID: ${rewardId})`);
+                  
+                  // Track this reward for timeout monitoring
+                  pendingRewardsManager.trackReward(event);
+
+                  const result = await rewardProcessor.processReward({ container, event });
+                  logger.info(`Reward processor returned: success=${result.success}, autoCancel=${result.autoCancel}`);
+
+                  if (result.success) {
+                    // Mark as fulfilled
+                    pendingRewardsManager.completeReward(rewardId);
+                    try {
+                      await retryWithBackoff(() =>
+                        completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, true)
+                      );
+                      logger.info(`✓ Reward fulfilled: ${event.reward.title} (ID: ${rewardId})`);
+                      pendingRewardsManager.cleanup(rewardId);
+                    } catch (fulfillError) {
+                      logger.error(`✗ Failed to fulfill reward: ${event.reward.title} (${rewardId}) - Error: ${fulfillError.message}`);
+                      pendingRewardsManager.cleanup(rewardId);
+                    }
+                  } else if (result.autoCancel) {
+                    // Auto-cancel if no clients
+                    logger.warning(`Auto-canceling reward: ${event.reward.title} (ID: ${rewardId}) - no clients connected`);
+                    try {
+                      await retryWithBackoff(() =>
+                        completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
+                      );
+                      logger.info(`✓ Reward refunded (auto-cancel): ${event.reward.title} (ID: ${rewardId})`);
+                      pendingRewardsManager.cleanup(rewardId);
+                    } catch (cancelError) {
+                      logger.error(`✗ Failed to cancel reward: ${event.reward.title} (${rewardId}) - Error: ${cancelError.message}`);
+                      pendingRewardsManager.cleanup(rewardId);
+                    }
+                  } else if (result.success === false) {
+                    // Explicit failure, refund points
+                    logger.warning(`Reward processing failed: ${event.reward.title} (ID: ${rewardId}) - Refunding`);
+                    try {
+                      await retryWithBackoff(() =>
+                        completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
+                      );
+                      logger.info(`✓ Reward refunded: ${event.reward.title} (ID: ${rewardId})`);
+                      pendingRewardsManager.cleanup(rewardId);
+                    } catch (refundError) {
+                      logger.error(`✗ Failed to refund reward: ${event.reward.title} (${rewardId}) - Error: ${refundError.message}`);
+                      pendingRewardsManager.cleanup(rewardId);
+                    }
+                  }
+                } catch (error) {
+                  logger.error(`✗ Uncaught error processing reward: ${event.reward.title} (${rewardId}) - Error: ${error.message}`);
+                  pendingRewardsManager.cleanup(rewardId);
+                  try {
+                    await retryWithBackoff(() =>
+                      completeChannelPointRewardRequestWithRefresh(user.id, rewardId, event.reward.id, false)
+                    );
+                    logger.info(`✓ Reward error-refunded: ${event.reward.title} (ID: ${rewardId})`);
+                  } catch (retryError) {
+                    logger.error(`✗ Failed to error-refund reward: ${event.reward.title} (${rewardId}) - Error: ${retryError.message}`);
+                  }
+                }
+              })();
               break;
           }
         } else if (messageData.metadata.message_type === 'session_welcome') {

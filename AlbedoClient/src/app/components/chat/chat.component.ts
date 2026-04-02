@@ -25,6 +25,8 @@ export class ChatComponent {
     this.socketService.ttsMessageEvent.subscribe((id: string) => {
       this.audioService.playAudio(id).then((_) => {
         this.socketService.completeTTS(id);
+      }).catch(() => {
+        this.socketService.completeTTS(id);
       });
     });
   }

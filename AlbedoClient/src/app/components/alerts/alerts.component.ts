@@ -48,6 +48,8 @@ export class AlertsComponent {
   }
 
   playAlertSound(type: string): void {
-    this.audioService.playAudio(type);
+    this.audioService.playAudio(type).catch(() => {
+      // Ignore missing/failed alert sounds to avoid interrupting the alert flow.
+    });
   }
 }
