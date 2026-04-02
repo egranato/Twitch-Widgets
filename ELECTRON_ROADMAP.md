@@ -7,7 +7,9 @@ Package the Twitch Widgets project as a Windows desktop app so streaming workflo
 - Milestone 1: Completed
 - Milestone 2: Completed
 - Milestone 3: Completed
-- Active Focus: Audio Reliability Feature Roadmap (new)
+- Audio Reliability Feature Roadmap: Completed
+- Milestone 4: Functionally complete for local-only usage
+- Active Focus: Shelved (local-only maintenance mode)
 
 ## Success Criteria
 - Desktop app starts with a double-click and launches services reliably.
@@ -137,7 +139,7 @@ Status: Completed
 - OBS tab now includes optional automatic opening of `/full` on server start.
 
 ## Feature Roadmap - Audio Reliability (OBS-First + Electron Fallback)
-Status: Planned (Start Next)
+Status: Completed
 
 ### Objective
 Create a single, predictable audio path for alerts by defaulting to OBS-hosted playback, while preserving a safe Electron playback fallback if OBS browser audio fails.
@@ -216,6 +218,20 @@ Create a single, predictable audio path for alerts by defaulting to OBS-hosted p
 3. Phase C (mix tooling + checklist)
 
 ## Milestone 4 - Build, Signing, and Distribution
+Status: Shelved (Local-Only Complete)
+
+### Progress Snapshot
+- Completed:
+   - Electron builder config added for Windows targets (NSIS + portable).
+   - Packaged runtime pathing added so Electron resolves `NigredoServer` from `process.resourcesPath` when bundled.
+   - Backend resources included via `extraResources` in electron-builder config.
+   - Local build validation passed with `desktop:build`.
+   - Distribution artifact generation passed with `desktop:dist`.
+- Remaining:
+   - Deferred until multi-user/public release is needed:
+      - Add explicit code-signing placeholder values for release docs/process.
+      - Add release notes template and semantic versioning flow documentation.
+
 ### Outcomes
 - Repeatable production builds for Windows.
 - Installer and portable EXE generated from CI/local scripts.

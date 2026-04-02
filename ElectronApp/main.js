@@ -21,7 +21,15 @@ let isQuitting = false;
 let tray = null;
 let audioHealthCheckInterval = null;
 
-const SERVER_CWD = path.resolve(__dirname, '..', 'NigredoServer');
+function resolveServerCwd() {
+  if (app.isPackaged) {
+    return path.resolve(process.resourcesPath, 'NigredoServer');
+  }
+
+  return path.resolve(__dirname, '..', 'NigredoServer');
+}
+
+const SERVER_CWD = resolveServerCwd();
 const SERVER_ENTRY = path.resolve(SERVER_CWD, 'app.js');
 const LOG_FOLDER = path.resolve(SERVER_CWD, 'output');
 

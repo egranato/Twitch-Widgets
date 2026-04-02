@@ -7,7 +7,7 @@
     "dev": "electron .",
     "start": "electron .",
     "build": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder --publish never"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
@@ -15,5 +15,54 @@
     "electron": "^35.2.0",
     "electron-builder": "^26.0.12",
     "wait-on": "^8.0.5"
+  },
+  "build": {
+    "appId": "com.twitchwidgets.desktop",
+    "productName": "Twitch Widgets Desktop",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../NigredoServer",
+        "to": "NigredoServer",
+        "filter": [
+          "**/*",
+          "!output/**",
+          "!obs/output/**",
+          "!.env",
+          "!user-creds.json"
+        ]
+      }
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
   }
 }
