@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { RedemptionAlert } from '../redemption-alert.model';
-import { AudioService } from 'src/app/services/audio.service';
+
+const DEFAULT_REDEMPTION_DISPLAY_MS = 4500;
 
 @Component({
   selector: 'app-reward-media',
@@ -13,17 +14,18 @@ export class RewardMediaComponent implements OnInit {
     new EventEmitter<{ id: string; rewardId: string }>();
 
   mediaUrl?: string;
+  private displayTimeoutId: number | null = null;
 
-  constructor(private audioService: AudioService) {}
+  constructor() {}
 
   ngOnInit(): void {
     switch (this.alert?.type) {
       case 'hybrid':
         this.mediaUrl = this.createImageUrl(this.alert.name);
-        this.runAudio(this.alert.name);
+        this.scheduleComplete();
         break;
       case 'audio':
-        this.runAudio(this.alert.name);
+        this.scheduleComplete();
         break;
       case 'video':
         this.mediaUrl = this.createVideoUrl(this.alert.name);
@@ -45,11 +47,13 @@ export class RewardMediaComponent implements OnInit {
     return `/assets/images/${name}.gif`;
   }
 
-  runAudio(name: string): void {
-    this.audioService.playAudio(name).then((_) => {
+  scheduleComplete(): void {
+    if (this.displayTimeoutId !== null) {
+      window.clearTimeout(this.displayTimeoutId);
+    }
+
+    this.displayTimeoutId = window.setTimeout(() => {
       this.complete();
-    }).catch(() => {
-      this.complete();
-    });
+    }, DEFAULT_REDEMPTION_DISPLAY_MS);
   }
 }

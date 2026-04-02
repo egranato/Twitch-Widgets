@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { AlertEvent } from 'src/app/models/events.models';
-import { AudioService } from 'src/app/services/audio.service';
 import { SocketService } from 'src/app/services/socket.service';
 
 interface Alert {
   text: string;
   message: string;
 }
+
+const ALERT_DURATION_MS = 10000;
 
 @Component({
   selector: 'app-alerts',
@@ -15,41 +16,54 @@ interface Alert {
 })
 export class AlertsComponent {
   public alert: Alert | null = null;
+  private queue: Alert[] = [];
+  private isShowingAlert = false;
 
-  constructor(
-    private socketService: SocketService,
-    private audioService: AudioService
-  ) {
+  constructor(private socketService: SocketService) {
     this.socketService.alertEvent.subscribe((event) => {
-      this.fireAlert(event);
+      this.enqueueAlert(event);
     });
   }
 
-  fireAlert(event: AlertEvent): void {
+  enqueueAlert(event: AlertEvent): void {
+    const alert = this.createAlert(event);
+    if (!alert) {
+      return;
+    }
+
+    this.queue.push(alert);
+    this.showNextAlert();
+  }
+
+  createAlert(event: AlertEvent): Alert | null {
     switch (event.type) {
       case 'follow':
-        this.alert = {
+        return {
           text: `${event.displayName} has just followed!`,
           message: 'Thank you so much!',
         };
-        break;
       case 'subscription':
-        this.alert = {
+        return {
           text: event.displayName,
           message: "You're a real legend <3",
         };
-        break;
+      default:
+        return null;
     }
-
-    this.playAlertSound(event.type);
-    setTimeout(() => {
-      this.alert = null;
-    }, 10000);
   }
 
-  playAlertSound(type: string): void {
-    this.audioService.playAudio(type).catch(() => {
-      // Ignore missing/failed alert sounds to avoid interrupting the alert flow.
-    });
+  showNextAlert(): void {
+    if (this.isShowingAlert || this.queue.length === 0) {
+      return;
+    }
+
+    this.isShowingAlert = true;
+    this.alert = this.queue.shift() || null;
+
+    setTimeout(() => {
+      this.alert = null;
+      this.isShowingAlert = false;
+      this.showNextAlert();
+    }, ALERT_DURATION_MS);
   }
 }

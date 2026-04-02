@@ -281,6 +281,8 @@ Status: Shelved (Local-Only Complete)
 2. Built-in route preview window for quick visual checks.
 3. Built-in OBS websocket controls (scene/source toggles).
 4. Profile presets for different stream layouts.
+5. Desktop lifecycle preference: optional "Quit app when window is closed" toggle (instead of tray-only background behavior on Windows).
+6. Alert presentation polish: add configurable fade/slide transition animations for queued alerts.
 
 ## Suggested Execution Order
 1. Milestone 1

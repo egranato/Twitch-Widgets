@@ -1,5 +1,4 @@
 import { Component, ViewEncapsulation } from '@angular/core';
-import { AudioService } from 'src/app/services/audio.service';
 import { SocketService } from 'src/app/services/socket.service';
 import { MessageEvent } from '../../models/events.models';
 
@@ -12,10 +11,7 @@ import { MessageEvent } from '../../models/events.models';
 export class ChatComponent {
   chatHistory: Array<MessageEvent>;
 
-  constructor(
-    private socketService: SocketService,
-    private audioService: AudioService
-  ) {
+  constructor(private socketService: SocketService) {
     this.chatHistory = [];
 
     this.socketService.messageEvent.subscribe((event: MessageEvent) => {
@@ -23,11 +19,7 @@ export class ChatComponent {
     });
 
     this.socketService.ttsMessageEvent.subscribe((id: string) => {
-      this.audioService.playAudio(id).then((_) => {
-        this.socketService.completeTTS(id);
-      }).catch(() => {
-        this.socketService.completeTTS(id);
-      });
+      this.socketService.completeTTS(id);
     });
   }
 }

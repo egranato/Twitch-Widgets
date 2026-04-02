@@ -94,6 +94,77 @@ router.post('/audio/mute', (req, res, next) => {
 });
 
 /**
+ * POST /api/alerts/test/:alertType
+ * Trigger a synthetic alert event for overlay testing
+ */
+router.post('/alerts/test/:alertType', (req, res, next) => {
+  try {
+    if (!req.container) {
+      return res.status(503).json({
+        ok: false,
+        error: 'Server is still initializing',
+      });
+    }
+
+    const { alertType } = req.params;
+    const type = String(alertType || '').toLowerCase();
+    const allowed = ['follow', 'subscription', 'cheer'];
+
+    if (!allowed.includes(type)) {
+      return res.status(400).json({
+        ok: false,
+        error: `Invalid alert type. Use one of: ${allowed.join(', ')}`,
+      });
+    }
+
+    const { io, audioManagerHandlers } = req.container;
+    const name = 'Desktop Test User';
+
+    if (type === 'follow') {
+      io.emit('follow', name);
+    } else {
+      io.emit('subscription', `${name} just subscribed!`);
+    }
+
+    if (audioManagerHandlers) {
+      if (type === 'follow') {
+        audioManagerHandlers.enqueueAudio({
+          type: 'follow',
+          filePath: '/assets/audio/follow.mp3',
+          volume: 0.85,
+          priority: 'normal',
+          label: 'Follow test alert',
+        });
+      } else if (type === 'subscription') {
+        audioManagerHandlers.enqueueAudio({
+          type: 'subscription',
+          filePath: '/assets/audio/subscription.mp3',
+          volume: 0.9,
+          priority: 'high',
+          label: 'Subscription test alert',
+        });
+      } else if (type === 'cheer') {
+        audioManagerHandlers.enqueueAudio({
+          type: 'cheer',
+          filePath: '/assets/audio/shotgun.mp3',
+          volume: 0.95,
+          priority: 'high',
+          label: 'Cheer test alert',
+        });
+      }
+    }
+
+    res.json({
+      ok: true,
+      alertType: type,
+      message: 'Test alert emitted',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /api/audio/diagnostics
  * Get audio queue status and diagnostics
  */

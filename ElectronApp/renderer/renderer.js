@@ -10,6 +10,9 @@ const audioLastCheckStatus = document.getElementById('audioLastCheckStatus');
 const checkAudioHealthBtn = document.getElementById('checkAudioHealthBtn');
 const runAudioTestBtn = document.getElementById('runAudioTestBtn');
 const muteAudioBtn = document.getElementById('muteAudioBtn');
+const testFollowAlertBtn = document.getElementById('testFollowAlertBtn');
+const testSubscriptionAlertBtn = document.getElementById('testSubscriptionAlertBtn');
+const testCheerAlertBtn = document.getElementById('testCheerAlertBtn');
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -216,6 +219,9 @@ function renderAudioStatus(state) {
   checkAudioHealthBtn.disabled = !serverRunning;
   runAudioTestBtn.disabled = !serverRunning;
   muteAudioBtn.disabled = !serverRunning;
+  testFollowAlertBtn.disabled = !serverRunning;
+  testSubscriptionAlertBtn.disabled = !serverRunning;
+  testCheerAlertBtn.disabled = !serverRunning;
 }
 
 async function hydrate() {
@@ -279,6 +285,7 @@ async function copyRoutesSummary() {
     `chat: ${routes.chat}`,
     `alerts: ${routes.alerts}`,
     `redemptions: ${routes.redemptions}`,
+    `audioManager: ${routes.audioManager}`,
     `auth: ${routes.auth}`,
   ].join('\n');
 
@@ -497,6 +504,35 @@ muteAudioBtn.addEventListener('click', async () => {
 
   const cleared = result.eventsCleared || 0;
   showInlineMessage(`All audio muted (${cleared} events cleared from queue).`);
+});
+
+async function runAlertTest(type) {
+  const result = await window.desktopAPI.runAlertTest(type);
+  if (!result.ok) {
+    showInlineMessage(`Alert test failed: ${result.error}`);
+    return;
+  }
+
+  const label = (result.alertType || type || '').toUpperCase();
+  showInlineMessage(`${label} alert test triggered.`);
+}
+
+testFollowAlertBtn.addEventListener('click', async () => {
+  testFollowAlertBtn.disabled = true;
+  await runAlertTest('follow');
+  testFollowAlertBtn.disabled = false;
+});
+
+testSubscriptionAlertBtn.addEventListener('click', async () => {
+  testSubscriptionAlertBtn.disabled = true;
+  await runAlertTest('subscription');
+  testSubscriptionAlertBtn.disabled = false;
+});
+
+testCheerAlertBtn.addEventListener('click', async () => {
+  testCheerAlertBtn.disabled = true;
+  await runAlertTest('cheer');
+  testCheerAlertBtn.disabled = false;
 });
 
 window.desktopAPI.onStateChanged((state) => {

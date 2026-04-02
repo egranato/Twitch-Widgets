@@ -91,6 +91,39 @@ function getRoutes() {
   };
 }
 
+function postJson(url) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength('{}'),
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        if (!body) {
+          resolve({ ok: res.statusCode && res.statusCode < 400 });
+          return;
+        }
+
+        try {
+          resolve(JSON.parse(body));
+        } catch (error) {
+          reject(new Error('Invalid JSON response'));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write('{}');
+    req.end();
+  });
+}
+
 function sanitizeSettings(raw) {
   const normalized = { ...DEFAULT_SETTINGS, ...raw };
 
@@ -772,23 +805,24 @@ function registerIpcHandlers() {
   ipcMain.handle('desktop:run-audio-test', async () => {
     const baseUrl = getServerBaseUrl();
     try {
-      const response = await new Promise((resolve, reject) => {
-        const req = http.post(`${baseUrl}/api/audio/test`, {}, (res) => {
-          let body = '';
-          res.on('data', (chunk) => {
-            body += chunk;
-          });
-          res.on('end', () => {
-            try {
-              resolve(JSON.parse(body));
-            } catch (e) {
-              reject(new Error('Invalid JSON response'));
-            }
-          });
-        });
-        req.on('error', reject);
-        req.end();
-      });
+      const response = await postJson(`${baseUrl}/api/audio/test`);
+
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('desktop:run-alert-test', async (_, alertType) => {
+    const baseUrl = getServerBaseUrl();
+    const type = typeof alertType === 'string' ? alertType.toLowerCase() : '';
+
+    if (!['follow', 'subscription', 'cheer'].includes(type)) {
+      return { ok: false, error: 'Invalid alert type' };
+    }
+
+    try {
+      const response = await postJson(`${baseUrl}/api/alerts/test/${type}`);
 
       return { ok: true, ...response };
     } catch (error) {
@@ -799,23 +833,7 @@ function registerIpcHandlers() {
   ipcMain.handle('desktop:mute-audio', async () => {
     const baseUrl = getServerBaseUrl();
     try {
-      const response = await new Promise((resolve, reject) => {
-        const req = http.post(`${baseUrl}/api/audio/mute`, {}, (res) => {
-          let body = '';
-          res.on('data', (chunk) => {
-            body += chunk;
-          });
-          res.on('end', () => {
-            try {
-              resolve(JSON.parse(body));
-            } catch (e) {
-              reject(new Error('Invalid JSON response'));
-            }
-          });
-        });
-        req.on('error', reject);
-        req.end();
-      });
+      const response = await postJson(`${baseUrl}/api/audio/mute`);
 
       return { ok: true, ...response };
     } catch (error) {
