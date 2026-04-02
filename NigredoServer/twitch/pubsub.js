@@ -128,7 +128,6 @@ module.exports = function setupTwitchPubSub(container) {
             case 'channel.follow':
               const newFollower = messageData.payload.event.user_name;
               logger.info(`New Follower: ${newFollower}`);
-              container.io.emit('follow', newFollower);
               // Enqueue follow alert sound
               if (container.audioManagerHandlers) {
                 container.audioManagerHandlers.enqueueAudio({
@@ -138,6 +137,10 @@ module.exports = function setupTwitchPubSub(container) {
                   priority: 'normal',
                   cooldownMs: 3000, // Avoid rapid-fire follows
                   label: `Follow from ${newFollower}`,
+                  displayEvent: {
+                    name: 'follow',
+                    payload: newFollower,
+                  },
                 });
               }
               break;

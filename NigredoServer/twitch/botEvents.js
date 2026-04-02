@@ -96,7 +96,6 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
   });
 
   twitchBot.on('subscription', (channel, username, methods, message, userState) => {
-    io.emit('subscription', userState['system-msg']);
     // Enqueue subscription alert sound
     if (container.audioManagerHandlers) {
       container.audioManagerHandlers.enqueueAudio({
@@ -105,12 +104,15 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
         volume: 0.9,
         priority: 'high',
         label: `Subscription from ${username}`,
+        displayEvent: {
+          name: 'subscription',
+          payload: userState['system-msg'],
+        },
       });
     }
   });
 
   twitchBot.on('resub', (channel, username, months, message, userState, methods) => {
-    io.emit('subscription', userState['system-msg']);
     // Enqueue resub alert sound
     if (container.audioManagerHandlers) {
       container.audioManagerHandlers.enqueueAudio({
@@ -119,6 +121,10 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
         volume: 0.9,
         priority: 'high',
         label: `Resub from ${username}`,
+        displayEvent: {
+          name: 'subscription',
+          payload: userState['system-msg'],
+        },
       });
     }
   });

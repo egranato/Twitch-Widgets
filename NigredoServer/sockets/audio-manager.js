@@ -19,11 +19,13 @@ module.exports = function setupAudioManagerHandlers(container) {
     });
 
     socket.on('audio-manager:ready-for-next', () => {
+      audioQueue.isPlaying = false;
       processNextAudioEvent();
     });
 
     socket.on('audio-manager:play-error', (data) => {
       logger.warning(`Audio manager playback error (event ${data.eventId}):`, data.error);
+      audioQueue.isPlaying = false;
       // Try next event in queue
       processNextAudioEvent();
     });
@@ -33,9 +35,19 @@ module.exports = function setupAudioManagerHandlers(container) {
    * Process next audio event in queue and send to audio managers
    */
   const processNextAudioEvent = () => {
+    if (audioQueue.isPlaying) {
+      return;
+    }
+
     const event = audioQueue.dequeue();
     if (event) {
+      audioQueue.isPlaying = true;
       audioQueue.markPlayed(event);
+
+      if (event.displayEvent && event.displayEvent.name) {
+        io.emit(event.displayEvent.name, event.displayEvent.payload);
+      }
+
       io.emit('audio-manager:play', event);
       emitQueueStatus();
     }

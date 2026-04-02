@@ -117,14 +117,8 @@ router.post('/alerts/test/:alertType', (req, res, next) => {
       });
     }
 
-    const { io, audioManagerHandlers } = req.container;
+    const { audioManagerHandlers } = req.container;
     const name = 'Desktop Test User';
-
-    if (type === 'follow') {
-      io.emit('follow', name);
-    } else {
-      io.emit('subscription', `${name} just subscribed!`);
-    }
 
     if (audioManagerHandlers) {
       if (type === 'follow') {
@@ -134,6 +128,10 @@ router.post('/alerts/test/:alertType', (req, res, next) => {
           volume: 0.85,
           priority: 'normal',
           label: 'Follow test alert',
+          displayEvent: {
+            name: 'follow',
+            payload: name,
+          },
         });
       } else if (type === 'subscription') {
         audioManagerHandlers.enqueueAudio({
@@ -142,6 +140,10 @@ router.post('/alerts/test/:alertType', (req, res, next) => {
           volume: 0.9,
           priority: 'high',
           label: 'Subscription test alert',
+          displayEvent: {
+            name: 'subscription',
+            payload: `${name} just subscribed!`,
+          },
         });
       } else if (type === 'cheer') {
         audioManagerHandlers.enqueueAudio({

@@ -44,6 +44,7 @@ class AudioQueue {
       priority: event.priority || 'normal',
       cooldownMs: cooldown,
       label: event.label || event.type,
+      displayEvent: event.displayEvent || null,
       addedAt: now,
       onCooldown: isOnCooldown,
     };
@@ -109,6 +110,7 @@ class AudioQueue {
   clear() {
     const count = this.queue.length;
     this.queue = [];
+    this.isPlaying = false;
     this.logger.info(`Audio queue cleared (${count} events removed)`);
     return count;
   }
