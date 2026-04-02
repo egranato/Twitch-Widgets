@@ -242,6 +242,10 @@
             <span>OBS Audio Owner Mode Enabled</span>
           </label>
           <label class="checkbox span-2">
+            <input id="desktopTtsToggle" type="checkbox" />
+            <span>Play TTS Locally in Desktop App (not on stream)</span>
+          </label>
+          <label class="checkbox span-2">
             <input id="obsAutoOpenFullToggle" type="checkbox" />
             <span>Auto-open /full route after server starts</span>
           </label>
@@ -296,6 +300,46 @@
         <button id="quickRunDiagnosticsBtn" class="button">Run Diagnostics</button>
         <button id="quickOpenFullBtn" class="button">Open /full</button>
         <button id="quickCopyRoutesBtn" class="button">Copy Routes</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>Stream Manager</h2>
+      </div>
+      <p class="hint">Live interaction view for monitoring overlays in one place while streaming.</p>
+      <div class="stream-manager-grid">
+        <div class="stream-panel">
+          <div class="stream-panel-header">
+            <span>Chat</span>
+            <button data-route="/chat" class="button route-btn">Open</button>
+          </div>
+          <iframe id="streamChatFrame" class="stream-frame" title="Chat Monitor"></iframe>
+        </div>
+
+        <div class="stream-panel">
+          <div class="stream-panel-header">
+            <span>Alerts</span>
+            <button data-route="/alerts" class="button route-btn">Open</button>
+          </div>
+          <iframe id="streamAlertsFrame" class="stream-frame" title="Alerts Monitor"></iframe>
+        </div>
+
+        <div class="stream-panel">
+          <div class="stream-panel-header">
+            <span>Redemptions</span>
+            <button data-route="/redemptions" class="button route-btn">Open</button>
+          </div>
+          <iframe id="streamRedemptionsFrame" class="stream-frame" title="Redemptions Monitor"></iframe>
+        </div>
+
+        <div class="stream-panel">
+          <div class="stream-panel-header">
+            <span>Full Overlay</span>
+            <button data-route="/full" class="button route-btn">Open</button>
+          </div>
+          <iframe id="streamFullFrame" class="stream-frame" title="Full Overlay Monitor"></iframe>
+        </div>
       </div>
     </section>
 

@@ -17,9 +17,5 @@ export class ChatComponent {
     this.socketService.messageEvent.subscribe((event: MessageEvent) => {
       this.chatHistory.push(event);
     });
-
-    this.socketService.ttsMessageEvent.subscribe((id: string) => {
-      this.socketService.completeTTS(id);
-    });
   }
 }

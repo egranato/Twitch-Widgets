@@ -559,6 +559,45 @@ body {
   color: #888;
 }
 
+.stream-manager-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stream-panel {
+  border: 1px solid #c8d5e6;
+  border-radius: 12px;
+  background: #fafbfd;
+  overflow: hidden;
+}
+
+.stream-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #dbe3ee;
+  background: #f3f8ff;
+  font-weight: 600;
+  color: var(--ink-1);
+}
+
+.stream-panel-header .button {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
+.stream-frame {
+  display: block;
+  width: 100%;
+  height: 250px;
+  border: 0;
+  background: #0f172a;
+}
+
 .badge {
   display: inline-block;
   padding: 4px 10px;
@@ -611,6 +650,10 @@ body {
   }
 
   .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .stream-manager-grid {
     grid-template-columns: 1fr;
   }
 }

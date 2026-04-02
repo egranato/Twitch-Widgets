@@ -39,6 +39,7 @@ const DEFAULT_SETTINGS = {
   envFilePath: path.resolve(SERVER_CWD, '.env'),
   userCredsPath: path.resolve(SERVER_CWD, 'user-creds.json'),
   obsAudioOwnerMode: true,
+  desktopTtsEnabled: true,
   obsAutoOpenFullOnStart: false,
   obsShowSizeHints: true,
   audioMode: 'auto', // 'auto' | 'obs-only' | 'electron-only'
@@ -152,6 +153,7 @@ function sanitizeSettings(raw) {
     envFilePath,
     userCredsPath,
     obsAudioOwnerMode: Boolean(normalized.obsAudioOwnerMode),
+    desktopTtsEnabled: Boolean(normalized.desktopTtsEnabled),
     obsAutoOpenFullOnStart: Boolean(normalized.obsAutoOpenFullOnStart),
     obsShowSizeHints: Boolean(normalized.obsShowSizeHints),
     audioMode,

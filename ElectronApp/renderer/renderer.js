@@ -28,6 +28,7 @@ const portInput = document.getElementById('portInput');
 const envPathInput = document.getElementById('envPathInput');
 const credsPathInput = document.getElementById('credsPathInput');
 const audioOwnerToggle = document.getElementById('audioOwnerToggle');
+const desktopTtsToggle = document.getElementById('desktopTtsToggle');
 const audioModeSelect = document.getElementById('audioModeSelect');
 const obsAutoOpenFullToggle = document.getElementById('obsAutoOpenFullToggle');
 const obsShowSizeHintsToggle = document.getElementById('obsShowSizeHintsToggle');
@@ -50,7 +51,126 @@ const quickRunDiagnosticsBtn = document.getElementById('quickRunDiagnosticsBtn')
 const quickOpenFullBtn = document.getElementById('quickOpenFullBtn');
 const quickCopyRoutesBtn = document.getElementById('quickCopyRoutesBtn');
 
+const streamChatFrame = document.getElementById('streamChatFrame');
+const streamAlertsFrame = document.getElementById('streamAlertsFrame');
+const streamRedemptionsFrame = document.getElementById('streamRedemptionsFrame');
+const streamFullFrame = document.getElementById('streamFullFrame');
+
 let latestState = null;
+let desktopTtsSocket = null;
+let desktopTtsSocketBaseUrl = '';
+let desktopTtsQueue = [];
+let desktopTtsPlaying = false;
+
+async function loadSocketIoClient(baseUrl) {
+  if (window.io) {
+    return true;
+  }
+
+  const scriptId = 'desktop-socket-io-client';
+  const existing = document.getElementById(scriptId);
+  if (existing) {
+    return new Promise((resolve) => {
+      existing.addEventListener('load', () => resolve(Boolean(window.io)), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+    });
+  }
+
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = `${baseUrl}/socket.io/socket.io.js`;
+    script.onload = () => resolve(Boolean(window.io));
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+function acknowledgeDesktopTts(id) {
+  if (!desktopTtsSocket || !desktopTtsSocket.connected) {
+    return;
+  }
+  desktopTtsSocket.emit('tts-complete', id);
+}
+
+function processDesktopTtsQueue() {
+  if (desktopTtsPlaying || desktopTtsQueue.length === 0) {
+    return;
+  }
+
+  if (!latestState || !latestState.settings?.desktopTtsEnabled) {
+    while (desktopTtsQueue.length > 0) {
+      const nextId = desktopTtsQueue.shift();
+      acknowledgeDesktopTts(nextId);
+    }
+    return;
+  }
+
+  const nextId = desktopTtsQueue.shift();
+  if (!nextId || !latestState.serverUrl) {
+    return;
+  }
+
+  desktopTtsPlaying = true;
+  const audio = new Audio(`${latestState.serverUrl}/assets/audio/${nextId}.mp3`);
+
+  const finish = () => {
+    acknowledgeDesktopTts(nextId);
+    desktopTtsPlaying = false;
+    processDesktopTtsQueue();
+  };
+
+  audio.onended = finish;
+  audio.onerror = finish;
+  audio.play().catch(() => {
+    finish();
+  });
+}
+
+function disconnectDesktopTtsSocket() {
+  if (desktopTtsSocket) {
+    desktopTtsSocket.off('tts-desktop-message');
+    desktopTtsSocket.disconnect();
+    desktopTtsSocket = null;
+  }
+  desktopTtsSocketBaseUrl = '';
+  desktopTtsQueue = [];
+  desktopTtsPlaying = false;
+}
+
+async function ensureDesktopTtsConnection(state) {
+  const serverRunning = state?.serverStatus === 'running';
+  const baseUrl = state?.serverUrl;
+
+  if (!serverRunning || !baseUrl) {
+    disconnectDesktopTtsSocket();
+    return;
+  }
+
+  if (desktopTtsSocket && desktopTtsSocket.connected && desktopTtsSocketBaseUrl === baseUrl) {
+    return;
+  }
+
+  if (desktopTtsSocket && desktopTtsSocketBaseUrl !== baseUrl) {
+    disconnectDesktopTtsSocket();
+  }
+
+  const loaded = await loadSocketIoClient(baseUrl);
+  if (!loaded || !window.io) {
+    return;
+  }
+
+  desktopTtsSocket = window.io(baseUrl, {
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+  });
+  desktopTtsSocketBaseUrl = baseUrl;
+
+  desktopTtsSocket.on('tts-desktop-message', (id) => {
+    desktopTtsQueue.push(id);
+    processDesktopTtsQueue();
+  });
+}
 
 function showInlineMessage(message) {
   errorText.hidden = false;
@@ -171,8 +291,38 @@ function render(state) {
   setDiagnostics(state.diagnostics || []);
   renderSettings(state.settings || {});
   renderAudioStatus(state);
+  renderStreamManager(state);
+  ensureDesktopTtsConnection(state).catch(() => {
+    // Ignore connection setup errors to avoid noisy UI interruptions.
+  });
+  processDesktopTtsQueue();
   restartServerBtn.hidden = !state.settingsRestartRequired;
   updateQuickSetupChecklist(state);
+}
+
+function setFrameSource(frame, url) {
+  if (!frame || !url) {
+    return;
+  }
+
+  if (frame.dataset.currentSrc === url) {
+    return;
+  }
+
+  frame.src = url;
+  frame.dataset.currentSrc = url;
+}
+
+function renderStreamManager(state) {
+  const routes = state?.routes;
+  if (!routes) {
+    return;
+  }
+
+  setFrameSource(streamChatFrame, routes.chat);
+  setFrameSource(streamAlertsFrame, routes.alerts);
+  setFrameSource(streamRedemptionsFrame, routes.redemptions);
+  setFrameSource(streamFullFrame, routes.full);
 }
 
 function renderSettings(settings) {
@@ -181,6 +331,7 @@ function renderSettings(settings) {
   envPathInput.value = settings.envFilePath || '';
   credsPathInput.value = settings.userCredsPath || '';
   audioOwnerToggle.checked = Boolean(settings.obsAudioOwnerMode);
+  desktopTtsToggle.checked = Boolean(settings.desktopTtsEnabled);
   audioModeSelect.value = settings.audioMode || 'auto';
   obsAutoOpenFullToggle.checked = Boolean(settings.obsAutoOpenFullOnStart);
   obsShowSizeHintsToggle.checked = Boolean(settings.obsShowSizeHints);
@@ -236,6 +387,7 @@ function getSettingsPayload() {
     envFilePath: String(envPathInput.value || '').trim(),
     userCredsPath: String(credsPathInput.value || '').trim(),
     obsAudioOwnerMode: audioOwnerToggle.checked,
+    desktopTtsEnabled: desktopTtsToggle.checked,
     audioMode: audioModeSelect.value || 'auto',
     obsAutoOpenFullOnStart: obsAutoOpenFullToggle.checked,
     obsShowSizeHints: obsShowSizeHintsToggle.checked,
