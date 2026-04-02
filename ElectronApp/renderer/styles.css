@@ -162,12 +162,6 @@ body {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.routes-grid {
-  margin-top: 12px;
-  display: grid;
-  gap: 8px;
-}
-
 .checklist-grid {
   margin-top: 8px;
   display: grid;
@@ -224,6 +218,142 @@ body {
   border-radius: 10px;
   padding: 8px 10px;
   background: #fbfdff;
+}
+
+.routes-grid {
+  margin: 12px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.route-card {
+  border: 1px solid #c8d5e6;
+  border-radius: 12px;
+  background: #fafbfd;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.route-card:hover {
+  border-color: #a0b9d0;
+  background: #f2f7ff;
+  box-shadow: 0 2px 8px rgba(23, 104, 172, 0.08);
+}
+
+.route-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.route-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-family: "Courier New", monospace;
+  color: var(--accent);
+}
+
+.route-type {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-1);
+  background: #e8f1ff;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.route-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-1);
+  line-height: 1.4;
+}
+
+.route-specs {
+  margin: 0;
+  padding: 0 0 0 20px;
+  font-size: 0.85rem;
+  color: var(--ink-1);
+  list-style: disc;
+  gap: 2px;
+}
+
+.route-specs li {
+  margin: 2px 0;
+  line-height: 1.3;
+}
+
+.route-note {
+  margin: 6px 0 0;
+  padding: 8px;
+  border-left: 3px solid var(--warn);
+  background: #fffaf0;
+  font-size: 0.85rem;
+  color: var(--ink-1);
+  border-radius: 6px;
+}
+
+.route-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.route-btn,
+.route-copy-btn {
+  font-size: 0.85rem;
+  padding: 7px 10px;
+}
+
+.route-guide {
+  margin: 12px 0 12px;
+  background: #f0f5ff;
+  border: 1px solid #c8d5e6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.route-guide summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: #ecf3ff;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-guide summary:hover {
+  background: #dceeff;
+}
+
+.guide-content {
+  padding: 12px;
+  border-top: 1px solid #c8d5e6;
+}
+
+.guide-content p {
+  margin: 0 0 8px;
+  line-height: 1.5;
+  color: var(--ink-1);
+}
+
+.guide-content ol {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink-1);
+}
+
+.guide-content li {
+  margin: 4px 0;
+  line-height: 1.4;
 }
 
 .settings-grid {

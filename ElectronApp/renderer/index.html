@@ -32,36 +32,125 @@
         <button id="copyAllRoutesBtn" class="button">Copy All Routes</button>
       </div>
       <p id="serverUrl" class="hint"></p>
+      
+      <details class="route-guide">
+        <summary>🔧 OBS Setup Guide</summary>
+        <div class="guide-content">
+          <p><strong>How to Add Browser Sources to OBS:</strong></p>
+          <ol>
+            <li>Right-click your scene → Add Source → Browser</li>
+            <li>Copy the full URL from this desktop app (use "Copy URL" buttons)</li>
+            <li>Paste into OBS browser source URL field and confirm</li>
+            <li>Set width × height to recommended dimensions (see route cards)</li>
+            <li>For <code>/audio-manager</code> only: Check "Control audio via OBS" to enable audio output</li>
+            <li>For all other routes: Keep audio <strong>disabled</strong></li>
+          </ol>
+          <p><strong>Audio Configuration:</strong> Only the <code>/audio-manager</code> source should have audio enabled. All other browser sources must have audio disabled to prevent overlapping sounds.</p>
+        </div>
+      </details>
+
       <div class="routes-grid">
-        <div class="route-row">
-          <span>/full</span>
-          <button data-route="/full" class="button route-btn">Open</button>
-          <button data-copy="full" class="button route-copy-btn">Copy</button>
+        <div class="route-card">
+          <div class="route-header">
+            <span class="route-name">/full</span>
+            <span class="route-type">Complete Overlay</span>
+          </div>
+          <p class="route-desc">All-in-one overlay with chat, alerts, and redemptions combined.</p>
+          <ul class="route-specs">
+            <li><strong>Recommended Size:</strong> 1920×1080 (full screen)</li>
+            <li><strong>Audio:</strong> Disabled</li>
+            <li><strong>Use Case:</strong> Full-screen overlay for main game scene</li>
+          </ul>
+          <div class="route-actions">
+            <button data-route="/full" class="button route-btn">Open</button>
+            <button data-copy="full" class="button route-copy-btn">Copy URL</button>
+          </div>
         </div>
-        <div class="route-row">
-          <span>/chat</span>
-          <button data-route="/chat" class="button route-btn">Open</button>
-          <button data-copy="chat" class="button route-copy-btn">Copy</button>
+
+        <div class="route-card">
+          <div class="route-header">
+            <span class="route-name">/chat</span>
+            <span class="route-type">Chat Widget</span>
+          </div>
+          <p class="route-desc">Live chat messages scrolling as viewers type.</p>
+          <ul class="route-specs">
+            <li><strong>Recommended Size:</strong> 650×760 (side panel)</li>
+            <li><strong>Audio:</strong> Disabled</li>
+            <li><strong>Use Case:</strong> Floating chat panel visible to stream</li>
+          </ul>
+          <div class="route-actions">
+            <button data-route="/chat" class="button route-btn">Open</button>
+            <button data-copy="chat" class="button route-copy-btn">Copy URL</button>
+          </div>
         </div>
-        <div class="route-row">
-          <span>/alerts</span>
-          <button data-route="/alerts" class="button route-btn">Open</button>
-          <button data-copy="alerts" class="button route-copy-btn">Copy</button>
+
+        <div class="route-card">
+          <div class="route-header">
+            <span class="route-name">/alerts</span>
+            <span class="route-type">Follow & Subscribe Alerts</span>
+          </div>
+          <p class="route-desc">Animated notifications for follows, subscriptions, and cheers.</p>
+          <ul class="route-specs">
+            <li><strong>Recommended Size:</strong> 700×400 (centered)</li>
+            <li><strong>Audio:</strong> Disabled (audio comes from /audio-manager)</li>
+            <li><strong>Use Case:</strong> Main alert display; position in center of screen</li>
+          </ul>
+          <div class="route-actions">
+            <button data-route="/alerts" class="button route-btn">Open</button>
+            <button data-copy="alerts" class="button route-copy-btn">Copy URL</button>
+          </div>
         </div>
-        <div class="route-row">
-          <span>/redemptions</span>
-          <button data-route="/redemptions" class="button route-btn">Open</button>
-          <button data-copy="redemptions" class="button route-copy-btn">Copy</button>
+
+        <div class="route-card">
+          <div class="route-header">
+            <span class="route-name">/redemptions</span>
+            <span class="route-type">Channel Point Redemptions</span>
+          </div>
+          <p class="route-desc">Channel point redemption notifications and custom interactions.</p>
+          <ul class="route-specs">
+            <li><strong>Recommended Size:</strong> 820×420 (wide centered)</li>
+            <li><strong>Audio:</strong> Disabled (audio comes from /audio-manager)</li>
+            <li><strong>Use Case:</strong> Display redemption effects and notifications</li>
+          </ul>
+          <div class="route-actions">
+            <button data-route="/redemptions" class="button route-btn">Open</button>
+            <button data-copy="redemptions" class="button route-copy-btn">Copy URL</button>
+          </div>
         </div>
-        <div class="route-row">
-          <span>/audio-manager</span>
-          <button data-route="/audio-manager" class="button route-btn">Open</button>
-          <button data-copy="audio-manager" class="button route-copy-btn">Copy</button>
+
+        <div class="route-card">
+          <div class="route-header">
+            <span class="route-name">/audio-manager</span>
+            <span class="route-type">🔊 Audio Queue (Critical)</span>
+          </div>
+          <p class="route-desc">Central audio playback for all alerts: TTS, cheers, subscriptions, follows.</p>
+          <ul class="route-specs">
+            <li><strong>Size:</strong> 1×1 (invisible; audio-only)</li>
+            <li><strong>Audio:</strong> <strong style="color: #4f8;">✓ MUST ENABLE</strong></li>
+            <li><strong>Use Case:</strong> Only source with audio enabled; all sounds play through here</li>
+          </ul>
+          <p class="route-note"><strong>⚠️ Critical Setup:</strong> Add this as a persistent browser source, set size to 1×1 (or hide off-screen), and enable "Control audio via OBS." This is the ONLY source that should have audio enabled.</p>
+          <div class="route-actions">
+            <button data-route="/audio-manager" class="button route-btn">Open</button>
+            <button data-copy="audio-manager" class="button route-copy-btn">Copy URL</button>
+          </div>
         </div>
-        <div class="route-row">
-          <span>/auth</span>
-          <button data-route="/auth" class="button route-btn">Open</button>
-          <button data-copy="auth" class="button route-copy-btn">Copy</button>
+
+        <div class="route-card">
+          <div class="route-header">
+            <span class="route-name">/auth</span>
+            <span class="route-type">Twitch Authentication</span>
+          </div>
+          <p class="route-desc">Complete Twitch OAuth authorization for bot and API access.</p>
+          <ul class="route-specs">
+            <li><strong>Type:</strong> One-time auth flow (not a persistent source)</li>
+            <li><strong>Use Case:</strong> Click "Open" to authorize in browser; required once at setup</li>
+          </ul>
+          <p class="route-note">Open this link in your browser to log in with your Twitch account and authorize the bot.</p>
+          <div class="route-actions">
+            <button data-route="/auth" class="button route-btn">Open</button>
+            <button data-copy="auth" class="button route-copy-btn">Copy URL</button>
+          </div>
         </div>
       </div>
     </section>
