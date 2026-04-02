@@ -760,6 +760,60 @@ function registerIpcHandlers() {
       audioPathActive: state.audioPathActive,
     };
   });
+
+  ipcMain.handle('desktop:run-audio-test', async () => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await new Promise((resolve, reject) => {
+        const req = http.post(`${baseUrl}/api/audio/test`, {}, (res) => {
+          let body = '';
+          res.on('data', (chunk) => {
+            body += chunk;
+          });
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(body));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          });
+        });
+        req.on('error', reject);
+        req.end();
+      });
+
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('desktop:mute-audio', async () => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await new Promise((resolve, reject) => {
+        const req = http.post(`${baseUrl}/api/audio/mute`, {}, (res) => {
+          let body = '';
+          res.on('data', (chunk) => {
+            body += chunk;
+          });
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(body));
+            } catch (e) {
+              reject(new Error('Invalid JSON response'));
+            }
+          });
+        });
+        req.on('error', reject);
+        req.end();
+      });
+
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
 }
 
 function registerMainProcessErrorHandlers() {

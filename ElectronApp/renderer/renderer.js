@@ -8,6 +8,8 @@ const audioPathStatus = document.getElementById('audioPathStatus');
 const audioModeStatus = document.getElementById('audioModeStatus');
 const audioLastCheckStatus = document.getElementById('audioLastCheckStatus');
 const checkAudioHealthBtn = document.getElementById('checkAudioHealthBtn');
+const runAudioTestBtn = document.getElementById('runAudioTestBtn');
+const muteAudioBtn = document.getElementById('muteAudioBtn');
 
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -210,7 +212,10 @@ function renderAudioStatus(state) {
     }
   }
 
-  checkAudioHealthBtn.disabled = state.serverStatus !== 'running';
+  const serverRunning = state.serverStatus === 'running';
+  checkAudioHealthBtn.disabled = !serverRunning;
+  runAudioTestBtn.disabled = !serverRunning;
+  muteAudioBtn.disabled = !serverRunning;
 }
 
 async function hydrate() {
@@ -464,6 +469,34 @@ checkAudioHealthBtn.addEventListener('click', async () => {
   const status = result.audioHealthy ? 'Healthy' : 'Unhealthy';
   const path = result.audioPathActive || 'none';
   showInlineMessage(`Audio health: ${status} (path: ${path})`);
+});
+
+runAudioTestBtn.addEventListener('click', async () => {
+  runAudioTestBtn.disabled = true;
+  const result = await window.desktopAPI.runAudioTest();
+  runAudioTestBtn.disabled = false;
+
+  if (!result.ok) {
+    showInlineMessage(`Audio test failed: ${result.error}`);
+    return;
+  }
+
+  const tested = result.testsQueued || 0;
+  showInlineMessage(`Audio test sequence started (${tested} sounds queued).`);
+});
+
+muteAudioBtn.addEventListener('click', async () => {
+  muteAudioBtn.disabled = true;
+  const result = await window.desktopAPI.muteAudio();
+  muteAudioBtn.disabled = false;
+
+  if (!result.ok) {
+    showInlineMessage(`Mute failed: ${result.error}`);
+    return;
+  }
+
+  const cleared = result.eventsCleared || 0;
+  showInlineMessage(`All audio muted (${cleared} events cleared from queue).`);
 });
 
 window.desktopAPI.onStateChanged((state) => {

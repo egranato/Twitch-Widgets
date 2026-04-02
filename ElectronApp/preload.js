@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('desktopAPI', {
   getAudioStatus: () => ipcRenderer.invoke('desktop:get-audio-status'),
   setAudioMode: (mode) => ipcRenderer.invoke('desktop:set-audio-mode', mode),
   checkAudioHealth: () => ipcRenderer.invoke('desktop:check-audio-health'),
+  runAudioTest: () => ipcRenderer.invoke('desktop:run-audio-test'),
+  muteAudio: () => ipcRenderer.invoke('desktop:mute-audio'),
   onStateChanged: (listener) => {
     const wrapped = (_, state) => listener(state);
     ipcRenderer.on('desktop:state', wrapped);

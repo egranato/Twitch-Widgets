@@ -62,6 +62,13 @@ authService
     const audioManagerHandlers = require('./sockets/audio-manager')(container);
     container.audioManagerHandlers = audioManagerHandlers;
 
+    // Audio Control socket handlers (test, mute, diagnostics)
+    const audioControlHandlers = require('./sockets/audio-control')(container);
+    container.audioControlHandlers = audioControlHandlers;
+
+    // Make container available to HTTP routes
+    appContainer = container;
+
     // Twitch bot event handlers
     require('./twitch/botEvents')(twitchBot, container);
 
@@ -74,8 +81,18 @@ authService
 const clientIdRoute = require('./routes/clientId');
 const authRoute = require('./routes/auth');
 const audioManagerRoute = require('./routes/audio-manager');
+const audioControlRoute = require('./routes/audio-control');
+
+// Middleware to attach container to request once available
+let appContainer = null;
+app.use((req, res, next) => {
+  req.container = appContainer;
+  next();
+});
+
 app.use('/api', clientIdRoute);
 app.use('/api', authRoute);
+app.use('/api', audioControlRoute);
 app.use('/', audioManagerRoute);
 app.use(express.static('public/'));
 app.get('*', (req, res) => {
