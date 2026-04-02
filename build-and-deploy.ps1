@@ -5,18 +5,23 @@ Write-Host "================================================" -ForegroundColor C
 Write-Host "Building Albedo Client for Twitch Widgets" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 
-# Navigate to AlbedoClient directory
-Set-Location ".\AlbedoClient"
+# Navigate to AlbedoClient directory and always return to root after build
+Push-Location ".\AlbedoClient"
 
-# Check if node_modules exists
-if (-not (Test-Path "node_modules")) {
-    Write-Host "Installing dependencies..." -ForegroundColor Yellow
-    npm install
+try {
+    # Check if node_modules exists
+    if (-not (Test-Path "node_modules")) {
+        Write-Host "Installing dependencies..." -ForegroundColor Yellow
+        npm install
+    }
+
+    # Run production build
+    Write-Host "`nBuilding production bundle..." -ForegroundColor Yellow
+    npm run build:prod
 }
-
-# Run production build
-Write-Host "`nBuilding production bundle..." -ForegroundColor Yellow
-npm run build:prod
+finally {
+    Pop-Location
+}
 
 # Check if build was successful
 if ($LASTEXITCODE -eq 0) {
