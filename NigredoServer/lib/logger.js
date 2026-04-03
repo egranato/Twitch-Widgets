@@ -2,10 +2,16 @@ const chalk = require("chalk");
 const fs = require("fs");
 const path = require("path");
 
+const logDir = process.env.LOG_DIR
+  ? path.resolve(process.env.LOG_DIR)
+  : path.resolve("./output");
+
+fs.mkdirSync(logDir, { recursive: true });
+
 const logfile = {
-  info: path.resolve("./output/info.txt"),
-  warning: path.resolve("./output/warning.txt"),
-  error: path.resolve("./output/error.txt"),
+  info: path.resolve(logDir, "info.txt"),
+  warning: path.resolve(logDir, "warning.txt"),
+  error: path.resolve(logDir, "error.txt"),
 };
 
 const error = (e) => {

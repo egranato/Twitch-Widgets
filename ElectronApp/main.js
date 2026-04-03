@@ -31,7 +31,20 @@ function resolveServerCwd() {
 
 const SERVER_CWD = resolveServerCwd();
 const SERVER_ENTRY = path.resolve(SERVER_CWD, 'app.js');
-const LOG_FOLDER = path.resolve(SERVER_CWD, 'output');
+
+function getLogFolder() {
+  if (app.isPackaged) {
+    return path.resolve(app.getPath('userData'), 'NigredoServer', 'output');
+  }
+
+  return path.resolve(SERVER_CWD, 'output');
+}
+
+function ensureLogFolderExists() {
+  const folder = getLogFolder();
+  fs.mkdirSync(folder, { recursive: true });
+  return folder;
+}
 
 const DEFAULT_SETTINGS = {
   baseHost: 'localhost',
@@ -244,6 +257,14 @@ function log(prefix, chunk) {
   }
 }
 
+function formatStartupFailureMessage(baseMessage, stderrTail) {
+  if (!stderrTail) {
+    return baseMessage;
+  }
+
+  return `${baseMessage}\n\nServer stderr:\n${stderrTail}`;
+}
+
 function checkPathExists(filePath) {
   try {
     return fs.existsSync(filePath);
@@ -301,6 +322,16 @@ async function startServerProcess() {
   runStartupDiagnostics();
   updateState({ serverStatus: 'starting', lastError: '' });
 
+  const logFolder = ensureLogFolderExists();
+
+  if (!checkPathExists(SERVER_ENTRY)) {
+    const message = `Server entry not found: ${SERVER_ENTRY}`;
+    updateState({ serverStatus: 'error', lastError: message, serverManagedByApp: false });
+    throw new Error(message);
+  }
+
+  let stderrTail = '';
+
   const activePort = getServerPort();
   const portInUse = await isPortInUse(activePort);
   if (portInUse) {
@@ -309,14 +340,16 @@ async function startServerProcess() {
     throw new Error(message);
   }
 
-  serverProcess = spawn(process.execPath, ['-r', 'dotenv/config', SERVER_ENTRY], {
+  serverProcess = spawn(process.execPath, [SERVER_ENTRY], {
     cwd: SERVER_CWD,
     env: {
       ...process.env,
+      ELECTRON_RUN_AS_NODE: '1',
       ELECTRON_DESKTOP: '1',
       PORT: activePort,
       DOTENV_CONFIG_PATH: settings.envFilePath,
       USER_CREDS_PATH: settings.userCredsPath,
+      LOG_DIR: logFolder,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -327,6 +360,11 @@ async function startServerProcess() {
   serverProcess.stderr.on('data', (chunk) => {
     const text = chunk.toString();
     log('server:error', chunk);
+
+    if (text) {
+      const combined = `${stderrTail}${text}`;
+      stderrTail = combined.slice(-4000);
+    }
 
     if (text.includes('EADDRINUSE')) {
       updateState({
@@ -343,15 +381,28 @@ async function startServerProcess() {
     stopAudioHealthCheck();
 
     if (!wasStopping) {
+      const message = formatStartupFailureMessage(
+        `Server exited unexpectedly (code: ${code}, signal: ${signal || 'none'})`,
+        stderrTail,
+      );
       updateState({
         serverStatus: 'error',
-        lastError: `Server exited unexpectedly (code: ${code}, signal: ${signal || 'none'})`,
+        lastError: message,
         serverManagedByApp: false,
       });
       return;
     }
 
     updateState({ serverStatus: 'stopped', serverManagedByApp: false });
+  });
+
+  serverProcess.on('error', (error) => {
+    const message = `Failed to launch server process: ${error.message}`;
+    updateState({
+      serverStatus: 'error',
+      lastError: formatStartupFailureMessage(message, stderrTail),
+      serverManagedByApp: false,
+    });
   });
 
   await waitForServer(getServerBaseUrl());
@@ -510,7 +561,7 @@ function rebuildTrayMenu() {
     {
       label: 'Open Logs Folder',
       click: () => {
-        shell.openPath(LOG_FOLDER);
+        shell.openPath(ensureLogFolderExists());
       },
     },
     { type: 'separator' },
@@ -752,7 +803,8 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('desktop:open-logs', async () => {
-    const result = await shell.openPath(LOG_FOLDER);
+    const logFolder = ensureLogFolderExists();
+    const result = await shell.openPath(logFolder);
     if (result) {
       return { ok: false, error: result };
     }

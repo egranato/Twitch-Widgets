@@ -11,14 +11,4 @@ export const REWARDS: Array<IReward> = [
     filename: 'bleh',
     type: 'hybrid',
   },
-  {
-    title: 'Loser',
-    filename: 'loser',
-    type: 'video',
-  },
-  {
-    title: 'Yupee',
-    filename: 'yupee',
-    type: 'video',
-  },
 ];

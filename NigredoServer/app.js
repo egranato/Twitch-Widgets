@@ -1,5 +1,7 @@
 
-require('dotenv').config();
+require('dotenv').config({
+  path: process.env.DOTENV_CONFIG_PATH || '.env',
+});
 const express = require('express');
 const socketio = require('socket.io');
 const twitchBot = require('./lib/tmi-bot');
@@ -61,6 +63,7 @@ authService
     // Audio Manager socket handlers
     const audioManagerHandlers = require('./sockets/audio-manager')(container);
     container.audioManagerHandlers = audioManagerHandlers;
+    container.rewardDisplayQueue.setAudioEnqueue(audioManagerHandlers.enqueueAudio);
 
     // Audio Control socket handlers (test, mute, diagnostics)
     const audioControlHandlers = require('./sockets/audio-control')(container);

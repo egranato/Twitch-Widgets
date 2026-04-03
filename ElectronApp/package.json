@@ -35,10 +35,18 @@
         "to": "NigredoServer",
         "filter": [
           "**/*",
+          "!node_modules/**",
           "!output/**",
           "!obs/output/**",
           "!.env",
           "!user-creds.json"
+        ]
+      },
+      {
+        "from": "../NigredoServer/node_modules",
+        "to": "NigredoServer/node_modules",
+        "filter": [
+          "**/*"
         ]
       }
     ],

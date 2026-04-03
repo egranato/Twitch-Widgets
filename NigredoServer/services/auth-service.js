@@ -2,7 +2,9 @@
  * Authentication Service
  * Handles OAuth token management for Twitch API
  */
-require('dotenv').config();
+require('dotenv').config({
+  path: process.env.DOTENV_CONFIG_PATH || '.env',
+});
 const axios = require('axios').default;
 const fs = require('fs');
 const querystring = require('querystring');

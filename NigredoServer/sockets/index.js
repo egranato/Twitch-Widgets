@@ -2,13 +2,15 @@
 const commonUtils = require('../services/common-utils');
 
 module.exports = function setupSocketHandlers(container) {
-  const { io, logger, user } = container;
+  const { io, logger, rewardDisplayQueue } = container;
 
   io.on('connection', (connection) => {
     logger.info('IO Client Connected!');
 
-    // Note: Channel point reward fulfillment is now handled automatically by the PubSub handler
-    // No need for the client to manually fulfill rewards
+    connection.on('point-fulfill', (payload) => {
+      const eventId = payload?.id;
+      rewardDisplayQueue.complete(eventId);
+    });
 
     // delete tts generated mp3
     connection.on('tts-complete', (id) => {

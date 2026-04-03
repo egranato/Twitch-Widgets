@@ -5,7 +5,7 @@
   "scripts": {
     "desktop:install": "npm --prefix ElectronApp install",
     "desktop:dev": "npm --prefix ElectronApp run dev",
-    "desktop:build": "npm --prefix ElectronApp run build",
-    "desktop:dist": "npm --prefix ElectronApp run dist"
+    "desktop:build": "npm --prefix NigredoServer install --omit=dev && npm --prefix ElectronApp run build",
+    "desktop:dist": "npm --prefix NigredoServer install --omit=dev && npm --prefix ElectronApp run dist"
   }
 }

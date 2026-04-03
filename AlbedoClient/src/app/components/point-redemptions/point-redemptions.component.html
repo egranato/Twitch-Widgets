@@ -1,7 +1,8 @@
 <div class="holster">
-  <app-reward-media
-    *ngIf="alert | async"
-    [alert]="alert | async"
-    (completed)="removeAlertFromQueue($event)"
-  ></app-reward-media>
+  <ng-container *ngIf="alert | async as currentAlert">
+    <app-reward-media
+      [alert]="currentAlert"
+      (completed)="removeAlertFromQueue($event)"
+    ></app-reward-media>
+  </ng-container>
 </div>

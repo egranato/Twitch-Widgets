@@ -8,6 +8,7 @@
   muted
   #video
   (ended)="complete()"
+  (error)="onVideoError()"
 >
   <source [src]="mediaUrl" type="video/mp4" />
 </video>

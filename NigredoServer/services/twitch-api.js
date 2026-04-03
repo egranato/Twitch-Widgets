@@ -2,7 +2,9 @@
  * Twitch API Service
  * Handles EventSub subscriptions, channel points, badges, and user data retrieval
  */
-require('dotenv').config();
+require('dotenv').config({
+  path: process.env.DOTENV_CONFIG_PATH || '.env',
+});
 const axios = require('axios').default;
 
 const EVENTSUB_URL = 'https://api.twitch.tv/helix/eventsub/subscriptions';

@@ -32,8 +32,8 @@ export class PointRedemptionsComponent {
         console.log(`Unhandled reward redeemed: ${event.reward.title}`);
       } else {
         this.addAlertToQueue({
-          id: event.reward.id,
-          rewardId: event.id,
+          id: event.id,
+          rewardId: event.reward.id,
           type: reward.type,
           name: reward.filename,
         });
@@ -42,15 +42,28 @@ export class PointRedemptionsComponent {
   }
 
   addAlertToQueue(alert: RedemptionAlert): void {
-    const queue = this.alertQueueStore.value;
-    queue.push(alert);
-    this.alertQueueStore.next(queue);
+    this.alertQueueStore.next([...this.alertQueueStore.value, alert]);
   }
 
   removeAlertFromQueue(event: { id: string; rewardId: string }): void {
     const queue = this.alertQueueStore.value;
-    queue.shift();
-    this.alertQueueStore.next(queue);
+    if (queue.length === 0) {
+      return;
+    }
+
+    const removeIndex = queue.findIndex(
+      (item) => item.id === event.id && item.rewardId === event.rewardId
+    );
+
+    if (removeIndex >= 0) {
+      this.alertQueueStore.next([
+        ...queue.slice(0, removeIndex),
+        ...queue.slice(removeIndex + 1),
+      ]);
+    } else {
+      this.alertQueueStore.next(queue.slice(1));
+    }
+
     this.socketService.fulfillPointReward(event.id, event.rewardId);
   }
 }

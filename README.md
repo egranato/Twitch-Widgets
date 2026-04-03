@@ -38,6 +38,17 @@ CLIENT_SECRET=
 
 Ensure `NigredoServer/user-creds.json` exists for your auth/session data.
 
+Optional OBS video reward mapping (for OBS source toggles):
+
+```env
+OBS_REWARD_SOURCE_LOSER=Loser
+OBS_REWARD_DURATION_LOSER_MS=4500
+OBS_REWARD_SOURCE_YUPEE=Yupee
+OBS_REWARD_DURATION_YUPEE_MS=4500
+```
+
+These control which OBS source names are toggled for video-style channel point rewards and how long each source stays enabled.
+
 ### Launch desktop app
 
 From repo root:
@@ -103,6 +114,8 @@ From repo root, run:
 	`npm run desktop:install`
 3. Build Windows distributables (installer + portable):
 	`npm run desktop:dist`
+
+`desktop:build` and `desktop:dist` automatically install NigredoServer production dependencies before packaging.
 
 Output location:
 - `ElectronApp/dist`
