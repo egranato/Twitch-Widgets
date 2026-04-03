@@ -91,6 +91,29 @@ From repo root:
 - `npm run desktop:build`
 - `npm run desktop:dist`
 
+## Checkpoint EXE (Stream-Night Quick Build)
+
+Use this when you want a packaged desktop binary for tonight's stream.
+
+From repo root, run:
+
+1. Build/deploy Angular overlay assets to server public folder:
+	`./build-and-deploy.ps1`
+2. Ensure Electron dependencies are installed:
+	`npm run desktop:install`
+3. Build Windows distributables (installer + portable):
+	`npm run desktop:dist`
+
+Output location:
+- `ElectronApp/dist`
+
+Recommended for quick checkpoint use:
+- Use the portable `.exe` first (no install required).
+
+Notes:
+- Packaging excludes `NigredoServer/.env` and `NigredoServer/user-creds.json` by design.
+- On first launch, verify Desktop Settings paths and confirm your auth/session files are available.
+
 ## Logging
 
 Server logs are written to:
