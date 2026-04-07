@@ -2,9 +2,6 @@
  * Reward Processor Service
  * Handles channel point redemption logic
  */
-const fs = require('fs');
-const path = require('path');
-
 const OBS_VIDEO_REWARD_CONFIG = {
   Loser: {
     sourceName: process.env.OBS_REWARD_SOURCE_LOSER || 'Loser',
@@ -75,15 +72,8 @@ const REWARD_CONFIGS = {
 };
 
 const processReward = async ({ container, event }) => {
-  const { logger, io, obsRewardRegistry, obs, audioManagerHandlers } = container;
+  const { logger, io, obsRewardRegistry, obs } = container;
   const rewardTitle = event.reward.title;
-  const rewardSlug = String(rewardTitle || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
-    .trim();
-  const rewardAudioFileName = `${rewardSlug}.mp3`;
-  const rewardAudioDiskPath = path.resolve('public', 'assets', 'audio', rewardAudioFileName);
-  const hasDedicatedAudio = rewardSlug && fs.existsSync(rewardAudioDiskPath);
 
   logger.info(`Processing reward: ${rewardTitle} from ${event.user_name}`);
 
@@ -118,38 +108,9 @@ const processReward = async ({ container, event }) => {
       `Using registered OBS reward mapping for '${rewardTitle}' with ${mappedSources.length} source(s)`,
     );
 
-    const sourceResults = await Promise.all(
-      mappedSources.map((source) => obs.playRewardSource(source.sourceName, source.durationMs)),
-    );
-
-    if (sourceResults.some((success) => success !== true)) {
+    const syncedSuccess = await obs.playRewardSourcesSynced(mappedSources);
+    if (!syncedSuccess) {
       throw new Error(`one or more OBS sources were not found for reward '${rewardTitle}'`);
-    }
-
-    let mappedAudio = dynamicObsMapping.audio || null;
-    if (!mappedAudio && hasDedicatedAudio) {
-      mappedAudio = {
-        fileName: rewardAudioFileName,
-        volume: 0.9,
-      };
-    }
-
-    if (mappedAudio && audioManagerHandlers) {
-      const fileName = String(mappedAudio.fileName || '').trim();
-      const diskPath = path.resolve('public', 'assets', 'audio', fileName);
-
-      if (fileName && fs.existsSync(diskPath)) {
-        audioManagerHandlers.enqueueAudio({
-          type: 'redemption',
-          filePath: `/assets/audio/${fileName}`,
-          volume: Number.isFinite(mappedAudio.volume) ? mappedAudio.volume : 0.9,
-          priority: 'high',
-          cooldownMs: 0,
-          label: `Reward ${rewardTitle} from ${event.user_name}`,
-        });
-      } else {
-        logger.warning(`Mapped audio file not found for reward '${rewardTitle}': ${fileName}`);
-      }
     }
 
     return { success: true };

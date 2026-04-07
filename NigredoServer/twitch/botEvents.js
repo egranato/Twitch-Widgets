@@ -98,9 +98,19 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
   twitchBot.on('subscription', (channel, username, methods, message, userState) => {
     // Enqueue subscription alert sound
     if (container.audioManagerHandlers) {
+      const subscriptionAudioPath = container.alertAudioConfig
+        ? container.alertAudioConfig.resolveAudioUrl('subscription')
+        : '';
+
+      if (!subscriptionAudioPath) {
+        logger.warning('Subscription audio is not configured; emitting visual subscription alert without sound.');
+        io.emit('subscription', userState['system-msg']);
+        return;
+      }
+
       container.audioManagerHandlers.enqueueAudio({
         type: 'subscription',
-        filePath: '/assets/audio/subscription.mp3',
+        filePath: subscriptionAudioPath,
         volume: 0.9,
         priority: 'high',
         label: `Subscription from ${username}`,
@@ -115,9 +125,19 @@ module.exports = function setupTwitchBotEvents(twitchBot, container) {
   twitchBot.on('resub', (channel, username, months, message, userState, methods) => {
     // Enqueue resub alert sound
     if (container.audioManagerHandlers) {
+      const subscriptionAudioPath = container.alertAudioConfig
+        ? container.alertAudioConfig.resolveAudioUrl('subscription')
+        : '';
+
+      if (!subscriptionAudioPath) {
+        logger.warning('Subscription audio is not configured; emitting visual resub alert without sound.');
+        io.emit('subscription', userState['system-msg']);
+        return;
+      }
+
       container.audioManagerHandlers.enqueueAudio({
         type: 'subscription',
-        filePath: '/assets/audio/subscription.mp3',
+        filePath: subscriptionAudioPath,
         volume: 0.9,
         priority: 'high',
         label: `Resub from ${username}`,

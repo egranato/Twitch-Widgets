@@ -17,6 +17,7 @@ module.exports = function createContainer({
   user,
   allBadges,
   obsRewardRegistry,
+  alertAudioConfig,
 }) {
   const audioQueue = new AudioQueue({ logger });
   const volumeProfiles = new VolumeProfiles({ logger });
@@ -33,6 +34,7 @@ module.exports = function createContainer({
     user,
     allBadges,
     obsRewardRegistry,
+    alertAudioConfig,
     audioQueue,
     volumeProfiles,
     rewardDisplayQueue,

@@ -23,6 +23,7 @@ const authService = require('./services/auth-service');
 const twitchApi = require('./services/twitch-api');
 const createContainer = require('./services/container');
 const createObsRewardRegistry = require('./services/obs-reward-registry');
+const createAlertAudioConfig = require('./services/alert-audio-config');
 
 const app = express();
 const server = require('http').createServer(app);
@@ -31,6 +32,13 @@ app.use(cors({ origin: 'http://localhost:4200' }));
 app.use(express.json());
 
 const obsRewardRegistry = createObsRewardRegistry({ logger });
+const alertAudioConfig = createAlertAudioConfig({
+  logger,
+  serverRoot: path.resolve(__dirname),
+  followAudioFilePath: process.env.FOLLOW_AUDIO_FILE_PATH,
+  subscriptionAudioFilePath: process.env.SUBSCRIPTION_AUDIO_FILE_PATH,
+});
+alertAudioConfig.logMissingConfiguredFiles();
 
 
 // get global items that will be necessary for functioning later
@@ -60,6 +68,7 @@ authService
       user,
       allBadges,
       obsRewardRegistry,
+      alertAudioConfig,
     });
 
     // Socket.io event handlers

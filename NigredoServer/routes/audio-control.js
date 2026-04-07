@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const path = require('path');
 
 const router = express.Router();
 
@@ -118,13 +119,23 @@ router.post('/alerts/test/:alertType', (req, res, next) => {
     }
 
     const { audioManagerHandlers } = req.container;
+    const followAudioPath = req.container.alertAudioConfig
+      ? req.container.alertAudioConfig.resolveAudioUrl('follow')
+      : '';
+    const subscriptionAudioPath = req.container.alertAudioConfig
+      ? req.container.alertAudioConfig.resolveAudioUrl('subscription')
+      : '';
     const name = 'Desktop Test User';
 
     if (audioManagerHandlers) {
       if (type === 'follow') {
+        if (!followAudioPath) {
+          return res.status(400).json({ ok: false, error: 'Follow audio file is not configured.' });
+        }
+
         audioManagerHandlers.enqueueAudio({
           type: 'follow',
-          filePath: '/assets/audio/follow.mp3',
+          filePath: followAudioPath,
           volume: 0.85,
           priority: 'normal',
           label: 'Follow test alert',
@@ -134,9 +145,13 @@ router.post('/alerts/test/:alertType', (req, res, next) => {
           },
         });
       } else if (type === 'subscription') {
+        if (!subscriptionAudioPath) {
+          return res.status(400).json({ ok: false, error: 'Subscription audio file is not configured.' });
+        }
+
         audioManagerHandlers.enqueueAudio({
           type: 'subscription',
-          filePath: '/assets/audio/subscription.mp3',
+          filePath: subscriptionAudioPath,
           volume: 0.9,
           priority: 'high',
           label: 'Subscription test alert',
@@ -164,6 +179,37 @@ router.post('/alerts/test/:alertType', (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+/**
+ * GET /api/audio/custom/:eventType
+ * Streams configured local audio files for follow/subscription events
+ */
+router.get('/audio/custom/:eventType', (req, res) => {
+  if (!req.container || !req.container.alertAudioConfig) {
+    return res.status(503).json({ ok: false, error: 'Server is still initializing' });
+  }
+
+  const eventType = String(req.params.eventType || '').toLowerCase();
+  if (!['follow', 'subscription'].includes(eventType)) {
+    return res.status(400).json({ ok: false, error: 'Unsupported event type' });
+  }
+
+  const filePath = req.container.alertAudioConfig.getConfiguredPath(eventType);
+  if (!filePath || !req.container.alertAudioConfig.hasValidConfiguredPath(eventType)) {
+    return res.status(404).json({ ok: false, error: 'Configured audio file not found' });
+  }
+
+  const extension = path.extname(filePath).toLowerCase();
+  const mimeByExt = {
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+  };
+
+  res.setHeader('Content-Type', mimeByExt[extension] || 'application/octet-stream');
+  res.sendFile(filePath);
 });
 
 /**
@@ -264,7 +310,7 @@ router.get('/obs/rewards', (req, res, next) => {
 /**
  * POST /api/obs/rewards/register
  * Register or update reward title to OBS source mapping
- * Body: { rewardTitle, sources: [{ sourceName, durationMs }], audio?: { fileName, volume } }
+ * Body: { rewardTitle, sources: [{ sourceName }] }
  */
 router.post('/obs/rewards/register', (req, res, next) => {
   try {
@@ -279,26 +325,15 @@ router.post('/obs/rewards/register', (req, res, next) => {
     const bodySources = Array.isArray(req.body?.sources) ? req.body.sources : [];
     const sources = bodySources.map((item) => ({
       sourceName: String(item?.sourceName || '').trim(),
-      durationMs:
-        item?.durationMs === undefined || item?.durationMs === null || String(item?.durationMs).trim() === ''
-          ? null
-          : Number.parseInt(String(item.durationMs), 10),
     })).filter((item) => item.sourceName);
 
     // Backward compatibility for single-source payload.
     if (sources.length === 0) {
       const sourceName = String(req.body?.sourceName || '').trim();
-      const durationMs =
-        req.body?.durationMs === undefined || req.body?.durationMs === null || String(req.body?.durationMs).trim() === ''
-          ? null
-          : Number.parseInt(String(req.body.durationMs), 10);
       if (sourceName) {
-        sources.push({ sourceName, durationMs });
+        sources.push({ sourceName });
       }
     }
-
-    const audioFileName = String(req.body?.audio?.fileName || '').trim();
-    const audioVolume = Number.parseFloat(String(req.body?.audio?.volume || '0.9'));
 
     if (!rewardTitle) {
       return res.status(400).json({ ok: false, error: 'Reward title is required' });
@@ -308,24 +343,9 @@ router.post('/obs/rewards/register', (req, res, next) => {
       return res.status(400).json({ ok: false, error: 'At least one OBS source mapping is required' });
     }
 
-    const invalidSource = sources.find(
-      (item) => item.durationMs !== null && (!Number.isInteger(item.durationMs) || item.durationMs <= 0),
-    );
-    if (invalidSource) {
-      return res.status(400).json({ ok: false, error: 'Each source duration must be a positive integer (ms) when provided' });
-    }
-
-    const audio = audioFileName
-      ? {
-          fileName: audioFileName,
-          volume: Number.isFinite(audioVolume) ? audioVolume : 0.9,
-        }
-      : null;
-
     const mapping = req.container.obsRewardRegistry.upsertMapping({
       rewardTitle,
       sources,
-      audio,
     });
 
     return res.json({ ok: true, mapping });

@@ -185,6 +185,87 @@ const waitForMediaSourceEnd = async (sourceName) => {
   return false;
 };
 
+const selectDriverMediaSource = async (sourceNames) => {
+  const mediaCandidates = [];
+
+  for (const sourceName of sourceNames) {
+    try {
+      await obs.call("GetMediaInputStatus", { inputName: sourceName });
+      mediaCandidates.push(sourceName);
+    } catch (_) {
+      // Not a media input; ignore for driver selection.
+    }
+  }
+
+  if (mediaCandidates.length === 0) {
+    return null;
+  }
+
+  const audioLike = mediaCandidates.find((name) => /audio|sound|sfx|voice/i.test(String(name)));
+  return audioLike || mediaCandidates[0];
+};
+
+const playRewardSourcesSynced = async (sources = []) => {
+  const normalized = Array.isArray(sources)
+    ? sources
+      .map((item) => ({
+        sourceName: String(item?.sourceName || '').trim(),
+        durationMs:
+          Number.isInteger(item?.durationMs) && item.durationMs > 0
+            ? item.durationMs
+            : null,
+      }))
+      .filter((item) => item.sourceName)
+    : [];
+
+  if (normalized.length === 0) {
+    return false;
+  }
+
+  const enableResults = await Promise.all(
+    normalized.map((item) => toggleRewardSource(item.sourceName, true)),
+  );
+
+  if (enableResults.some((success) => success !== true)) {
+    await Promise.all(
+      normalized.map((item) => toggleRewardSource(item.sourceName, false).catch(() => false)),
+    );
+    return false;
+  }
+
+  try {
+    const explicitDurations = normalized
+      .map((item) => item.durationMs)
+      .filter((value) => Number.isInteger(value) && value > 0);
+
+    if (explicitDurations.length > 0) {
+      await delay(Math.max(...explicitDurations));
+    } else {
+      const driverSource = await selectDriverMediaSource(normalized.map((item) => item.sourceName));
+      if (driverSource) {
+        const ended = await waitForMediaSourceEnd(driverSource);
+        if (!ended) {
+          logger.warning(
+            `Driver media source '${driverSource}' did not report end in time; using fallback timeout`,
+          );
+          await delay(4500);
+        }
+      } else {
+        logger.warning(
+          "No media-capable OBS source found for synced reward playback; using fallback timeout",
+        );
+        await delay(4500);
+      }
+    }
+  } finally {
+    await Promise.all(
+      normalized.map((item) => toggleRewardSource(item.sourceName, false).catch(() => false)),
+    );
+  }
+
+  return true;
+};
+
 const playRewardSource = async (sourceName, durationMs = null) => {
   let success = await toggleRewardSource(sourceName, true);
   if (!success) {
@@ -221,6 +302,7 @@ module.exports = {
   penguins,
   toggleRewardSource,
   playRewardSource,
+  playRewardSourcesSynced,
   getConnectionStatus,
   connectManual,
 };

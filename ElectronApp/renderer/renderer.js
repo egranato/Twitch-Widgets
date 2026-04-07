@@ -36,6 +36,10 @@ const obsShowSizeHintsToggle = document.getElementById('obsShowSizeHintsToggle')
 const obsSizeHints = document.getElementById('obsSizeHints');
 const browseEnvBtn = document.getElementById('browseEnvBtn');
 const browseCredsBtn = document.getElementById('browseCredsBtn');
+const followAudioFileInput = document.getElementById('followAudioFileInput');
+const subscriptionAudioFileInput = document.getElementById('subscriptionAudioFileInput');
+const browseFollowAudioBtn = document.getElementById('browseFollowAudioBtn');
+const browseSubscriptionAudioBtn = document.getElementById('browseSubscriptionAudioBtn');
 const settingsTabs = document.querySelectorAll('.settings-tab');
 const settingsPanels = document.querySelectorAll('.settings-panel');
 
@@ -43,6 +47,8 @@ const checkServerStatus = document.getElementById('checkServerStatus');
 const checkEnvStatus = document.getElementById('checkEnvStatus');
 const checkCredsStatus = document.getElementById('checkCredsStatus');
 const checkAuthStatus = document.getElementById('checkAuthStatus');
+const checkFollowAudioStatus = document.getElementById('checkFollowAudioStatus');
+const checkSubscriptionAudioStatus = document.getElementById('checkSubscriptionAudioStatus');
 
 const quickStartServerBtn = document.getElementById('quickStartServerBtn');
 const quickOpenSettingsPathsBtn = document.getElementById('quickOpenSettingsPathsBtn');
@@ -51,23 +57,20 @@ const quickOpenAuthBtn = document.getElementById('quickOpenAuthBtn');
 const quickRunDiagnosticsBtn = document.getElementById('quickRunDiagnosticsBtn');
 const quickOpenFullBtn = document.getElementById('quickOpenFullBtn');
 const quickCopyRoutesBtn = document.getElementById('quickCopyRoutesBtn');
+const quickOpenSettingsFollowAudioBtn = document.getElementById('quickOpenSettingsFollowAudioBtn');
+const quickOpenSettingsSubscriptionAudioBtn = document.getElementById('quickOpenSettingsSubscriptionAudioBtn');
 
 const streamChatFrame = document.getElementById('streamChatFrame');
 const streamAlertsFrame = document.getElementById('streamAlertsFrame');
-const streamRedemptionsFrame = document.getElementById('streamRedemptionsFrame');
 const streamFullFrame = document.getElementById('streamFullFrame');
 const obsReconnectBanner = document.getElementById('obsReconnectBanner');
 const obsReconnectMessage = document.getElementById('obsReconnectMessage');
 const connectObsBtn = document.getElementById('connectObsBtn');
 const obsRewardRefreshBtn = document.getElementById('obsRewardRefreshBtn');
 const obsRewardRegisterBtn = document.getElementById('obsRewardRegisterBtn');
-const obsRewardDurationRequiredToggle = document.getElementById('obsRewardDurationRequiredToggle');
 const obsRewardTitleInput = document.getElementById('obsRewardTitleInput');
 const obsRewardSourceInput = document.getElementById('obsRewardSourceInput');
-const obsRewardDurationInput = document.getElementById('obsRewardDurationInput');
 const obsRewardSource2Input = document.getElementById('obsRewardSource2Input');
-const obsRewardDuration2Input = document.getElementById('obsRewardDuration2Input');
-const obsRewardAudioFileInput = document.getElementById('obsRewardAudioFileInput');
 const obsRewardMappingsList = document.getElementById('obsRewardMappingsList');
 const unconfiguredRewardBanner = document.getElementById('unconfiguredRewardBanner');
 const unconfiguredRewardList = document.getElementById('unconfiguredRewardList');
@@ -86,28 +89,14 @@ let latestObsRewardMappings = [];
 let obsRewardMappingsRefreshInFlight = false;
 let unconfiguredRewardEvents = [];
 
-function isDurationRequiredForObsReward() {
-  return Boolean(obsRewardDurationRequiredToggle?.checked);
-}
-
-function syncObsRewardDurationInputs() {
-  const required = isDurationRequiredForObsReward();
-
-  if (obsRewardDurationInput) {
-    obsRewardDurationInput.disabled = !required;
-  }
-
-  if (obsRewardDuration2Input) {
-    obsRewardDuration2Input.disabled = !required;
-  }
-}
-
 function normalizeSettings(settings) {
   return {
     baseHost: String(settings?.baseHost || 'localhost').trim(),
     port: Number.parseInt(String(settings?.port || 3000), 10),
     envFilePath: String(settings?.envFilePath || '').trim(),
     userCredsPath: String(settings?.userCredsPath || '').trim(),
+    followAudioFilePath: String(settings?.followAudioFilePath || '').trim(),
+    subscriptionAudioFilePath: String(settings?.subscriptionAudioFilePath || '').trim(),
     obsAudioOwnerMode: Boolean(settings?.obsAudioOwnerMode),
     desktopTtsEnabled: settings?.desktopTtsEnabled !== false,
     audioMode: String(settings?.audioMode || 'auto'),
@@ -121,6 +110,8 @@ function areSettingsEqual(a, b) {
     && a.port === b.port
     && a.envFilePath === b.envFilePath
     && a.userCredsPath === b.userCredsPath
+    && a.followAudioFilePath === b.followAudioFilePath
+    && a.subscriptionAudioFilePath === b.subscriptionAudioFilePath
     && a.obsAudioOwnerMode === b.obsAudioOwnerMode
     && a.desktopTtsEnabled === b.desktopTtsEnabled
     && a.audioMode === b.audioMode
@@ -338,11 +329,17 @@ function updateQuickSetupChecklist(state) {
   const envOk = !diagnosticIncludes('Missing .env');
   const credsOk = !diagnosticIncludes('Missing user-creds.json');
   const authOk = credsOk;
+  const followAudioOk = !diagnosticIncludes('Follow audio file is not configured')
+    && !diagnosticIncludes('Configured follow audio file is missing');
+  const subscriptionAudioOk = !diagnosticIncludes('Subscription audio file is not configured')
+    && !diagnosticIncludes('Configured subscription audio file is missing');
 
   setMiniBadge(checkServerStatus, serverOk, 'Start needed', 'Running');
   setMiniBadge(checkEnvStatus, envOk, 'Missing');
   setMiniBadge(checkCredsStatus, credsOk, 'Missing');
   setMiniBadge(checkAuthStatus, authOk, 'Run auth', 'Ready');
+  setMiniBadge(checkFollowAudioStatus, followAudioOk, 'Missing');
+  setMiniBadge(checkSubscriptionAudioStatus, subscriptionAudioOk, 'Missing');
 
   quickStartServerBtn.disabled = serverOk || state.serverStatus === 'starting';
 }
@@ -465,20 +462,18 @@ function renderObsRewardMappings(mappings) {
 
   const rows = items.map((item) => {
     const sourceText = Array.isArray(item.sources)
-      ? item.sources
-        .map((src) => `${escapeHtml(src.sourceName)} (${src.durationMs ? `${Number(src.durationMs)}ms` : 'until media ends'})`)
-        .join(' | ')
-      : `${escapeHtml(item.sourceName)} (${item.durationMs ? `${Number(item.durationMs)}ms` : 'until media ends'})`;
+      ? item.sources.map((name) => escapeHtml(name)).join(' | ')
+      : escapeHtml(item.sourceName);
 
-    const audioText = item.audio && item.audio.fileName
-      ? ` · Audio: ${escapeHtml(item.audio.fileName)} (${item.audio.volume ?? 0.9})`
+    const driverSourceText = item.driverSource
+      ? ` · Driver source: ${escapeHtml(item.driverSource)}`
       : '';
 
     return `
       <div class="obs-reward-row">
         <div>
           <div class="obs-reward-title">${escapeHtml(item.rewardTitle)}</div>
-          <div class="obs-reward-meta">OBS Sources: <strong>${sourceText}</strong>${audioText}</div>
+          <div class="obs-reward-meta">OBS Sources: <strong>${sourceText}</strong>${driverSourceText}</div>
         </div>
         <button class="button" data-action="remove-obs-reward" data-reward-title="${escapeHtml(item.rewardTitle)}">Remove</button>
       </div>
@@ -632,7 +627,6 @@ function renderStreamManager(state, options = {}) {
 
   setFrameSource(streamChatFrame, routes.chat, { forceReload });
   setFrameSource(streamAlertsFrame, routes.alerts, { forceReload });
-  setFrameSource(streamRedemptionsFrame, routes.redemptions, { forceReload });
   setFrameSource(streamFullFrame, routes.full, { forceReload });
 }
 
@@ -645,6 +639,12 @@ function renderSettings(settings, options = {}) {
     portInput.value = normalized.port;
     envPathInput.value = normalized.envFilePath;
     credsPathInput.value = normalized.userCredsPath;
+    if (followAudioFileInput) {
+      followAudioFileInput.value = normalized.followAudioFilePath;
+    }
+    if (subscriptionAudioFileInput) {
+      subscriptionAudioFileInput.value = normalized.subscriptionAudioFilePath;
+    }
     audioOwnerToggle.checked = normalized.obsAudioOwnerMode;
     if (desktopTtsToggle) {
       desktopTtsToggle.checked = normalized.desktopTtsEnabled;
@@ -708,6 +708,8 @@ function getSettingsPayload() {
     port: Number.parseInt(String(portInput.value || ''), 10),
     envFilePath: String(envPathInput.value || '').trim(),
     userCredsPath: String(credsPathInput.value || '').trim(),
+    followAudioFilePath: String(followAudioFileInput?.value || '').trim(),
+    subscriptionAudioFilePath: String(subscriptionAudioFileInput?.value || '').trim(),
     obsAudioOwnerMode: audioOwnerToggle.checked,
     desktopTtsEnabled: desktopTtsToggle ? desktopTtsToggle.checked : true,
     audioMode: audioModeSelect.value || 'auto',
@@ -721,6 +723,8 @@ const settingsInputs = [
   portInput,
   envPathInput,
   credsPathInput,
+  followAudioFileInput,
+  subscriptionAudioFileInput,
   audioOwnerToggle,
   desktopTtsToggle,
   audioModeSelect,
@@ -780,7 +784,6 @@ async function copyRoutesSummary() {
     `full: ${routes.full}`,
     `chat: ${routes.chat}`,
     `alerts: ${routes.alerts}`,
-    `redemptions: ${routes.redemptions}`,
     `audioManager: ${routes.audioManager}`,
     `auth: ${routes.auth}`,
   ].join('\n');
@@ -870,6 +873,32 @@ browseCredsBtn.addEventListener('click', async () => {
   }
 });
 
+if (browseFollowAudioBtn) {
+  browseFollowAudioBtn.addEventListener('click', async () => {
+    const result = await window.desktopAPI.pickFile({
+      fileType: 'any',
+      defaultPath: followAudioFileInput?.value || undefined,
+    });
+
+    if (result && result.ok && result.filePath && followAudioFileInput) {
+      followAudioFileInput.value = result.filePath;
+    }
+  });
+}
+
+if (browseSubscriptionAudioBtn) {
+  browseSubscriptionAudioBtn.addEventListener('click', async () => {
+    const result = await window.desktopAPI.pickFile({
+      fileType: 'any',
+      defaultPath: subscriptionAudioFileInput?.value || undefined,
+    });
+
+    if (result && result.ok && result.filePath && subscriptionAudioFileInput) {
+      subscriptionAudioFileInput.value = result.filePath;
+    }
+  });
+}
+
 copyAllRoutesBtn.addEventListener('click', async () => {
   await copyRoutesSummary();
 });
@@ -889,6 +918,20 @@ quickOpenSettingsCredsBtn.addEventListener('click', () => {
 quickOpenAuthBtn.addEventListener('click', async () => {
   await window.desktopAPI.openOverlay('/auth');
 });
+
+if (quickOpenSettingsFollowAudioBtn) {
+  quickOpenSettingsFollowAudioBtn.addEventListener('click', () => {
+    activateSettingsTab('obs');
+    followAudioFileInput?.focus();
+  });
+}
+
+if (quickOpenSettingsSubscriptionAudioBtn) {
+  quickOpenSettingsSubscriptionAudioBtn.addEventListener('click', () => {
+    activateSettingsTab('obs');
+    subscriptionAudioFileInput?.focus();
+  });
+}
 
 quickRunDiagnosticsBtn.addEventListener('click', async () => {
   const result = await window.desktopAPI.runDiagnostics();
@@ -1063,25 +1106,17 @@ if (obsRewardRefreshBtn) {
 
 if (obsRewardRegisterBtn) {
   obsRewardRegisterBtn.addEventListener('click', async () => {
-    const durationRequired = isDurationRequiredForObsReward();
     const rewardTitle = String(obsRewardTitleInput?.value || '').trim();
     const primarySourceName = String(obsRewardSourceInput?.value || '').trim();
-    const primaryDurationMs = durationRequired
-      ? Number.parseInt(String(obsRewardDurationInput?.value || '4500'), 10)
-      : null;
     const secondarySourceName = String(obsRewardSource2Input?.value || '').trim();
-    const secondaryDurationMs = durationRequired
-      ? Number.parseInt(String(obsRewardDuration2Input?.value || '4500'), 10)
-      : null;
-    const audioFileName = String(obsRewardAudioFileInput?.value || '').trim();
 
     const sources = [];
     if (primarySourceName) {
-      sources.push({ sourceName: primarySourceName, durationMs: primaryDurationMs });
+      sources.push({ sourceName: primarySourceName });
     }
 
     if (secondarySourceName) {
-      sources.push({ sourceName: secondarySourceName, durationMs: secondaryDurationMs });
+      sources.push({ sourceName: secondarySourceName });
     }
 
     if (!rewardTitle) {
@@ -1094,24 +1129,10 @@ if (obsRewardRegisterBtn) {
       return;
     }
 
-    if (durationRequired) {
-      const invalidSource = sources.find((item) => !Number.isInteger(item.durationMs) || item.durationMs <= 0);
-      if (invalidSource) {
-        showInlineMessage('Each duration must be a positive integer in milliseconds.');
-        return;
-      }
-    }
-
     obsRewardRegisterBtn.disabled = true;
     const result = await window.desktopAPI.registerObsRewardMapping({
       rewardTitle,
       sources,
-      audio: audioFileName
-        ? {
-            fileName: audioFileName,
-            volume: 0.9,
-          }
-        : null,
     });
     obsRewardRegisterBtn.disabled = false;
 
@@ -1156,18 +1177,6 @@ if (obsRewardMappingsList) {
     showInlineMessage(`Removed OBS mapping for reward '${rewardTitle}'.`);
     await refreshObsRewardMappings(latestState);
   });
-}
-
-if (obsRewardDurationRequiredToggle) {
-  obsRewardDurationRequiredToggle.addEventListener('change', () => {
-    syncObsRewardDurationInputs();
-  });
-
-  if (!obsRewardDurationRequiredToggle.checked) {
-    obsRewardDurationRequiredToggle.checked = false;
-  }
-
-  syncObsRewardDurationInputs();
 }
 
 window.desktopAPI.onStateChanged((state) => {

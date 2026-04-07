@@ -106,7 +106,7 @@
             <span class="route-name">/full</span>
             <span class="route-type">Complete Overlay</span>
           </div>
-          <p class="route-desc">All-in-one overlay with chat, alerts, and redemptions combined.</p>
+          <p class="route-desc">All-in-one overlay with chat and alerts combined.</p>
           <ul class="route-specs">
             <li><strong>Recommended Size:</strong> 1920×1080 (full screen)</li>
             <li><strong>Audio:</strong> Disabled</li>
@@ -149,23 +149,6 @@
           <div class="route-actions">
             <button data-route="/alerts" class="button route-btn">Open</button>
             <button data-copy="alerts" class="button route-copy-btn">Copy URL</button>
-          </div>
-        </div>
-
-        <div class="route-card">
-          <div class="route-header">
-            <span class="route-name">/redemptions</span>
-            <span class="route-type">Channel Point Redemptions</span>
-          </div>
-          <p class="route-desc">Channel point redemption notifications and custom interactions.</p>
-          <ul class="route-specs">
-            <li><strong>Recommended Size:</strong> 820×420 (wide centered)</li>
-            <li><strong>Audio:</strong> Disabled (audio comes from /audio-manager)</li>
-            <li><strong>Use Case:</strong> Display redemption effects and notifications</li>
-          </ul>
-          <div class="route-actions">
-            <button data-route="/redemptions" class="button route-btn">Open</button>
-            <button data-copy="redemptions" class="button route-copy-btn">Copy URL</button>
           </div>
         </div>
 
@@ -281,6 +264,20 @@
               <option value="electron-only">Electron Only</option>
             </select>
           </label>
+          <label class="span-2 path-field">
+            Follow Sound File
+            <div class="path-row">
+              <input id="followAudioFileInput" type="text" placeholder="Select a follow sound file" />
+              <button id="browseFollowAudioBtn" type="button" class="button">Browse</button>
+            </div>
+          </label>
+          <label class="span-2 path-field">
+            Subscription Sound File
+            <div class="path-row">
+              <input id="subscriptionAudioFileInput" type="text" placeholder="Select a subscription sound file" />
+              <button id="browseSubscriptionAudioBtn" type="button" class="button">Browse</button>
+            </div>
+          </label>
         </div>
         <div id="obsSizeHints" class="size-hints">
           <p><strong>Suggested 1080p source sizes</strong></p>
@@ -315,6 +312,16 @@
           <span id="checkAuthStatus" class="mini-badge pending">Pending</span>
           <button id="quickOpenAuthBtn" class="button">Open /auth</button>
         </div>
+        <div class="check-row">
+          <span>Follow sound configured</span>
+          <span id="checkFollowAudioStatus" class="mini-badge pending">Pending</span>
+          <button id="quickOpenSettingsFollowAudioBtn" class="button">Fix</button>
+        </div>
+        <div class="check-row">
+          <span>Subscription sound configured</span>
+          <span id="checkSubscriptionAudioStatus" class="mini-badge pending">Pending</span>
+          <button id="quickOpenSettingsSubscriptionAudioBtn" class="button">Fix</button>
+        </div>
       </div>
       <div class="quick-actions">
         <button id="quickRunDiagnosticsBtn" class="button">Run Diagnostics</button>
@@ -338,18 +345,16 @@
             <li>Add each reward video as a source inside that group (for example: Loser, Dumb Animal, Yipee).</li>
             <li>For hybrid rewards, add both sources in OBS (for example GIF source + overlay source) and register both below.</li>
             <li>Make sure each source name in OBS exactly matches the <strong>OBS Source Name</strong> values you register below.</li>
-            <li>Set each video source to hidden by default. The app will toggle it on for the duration, then off again.</li>
-            <li>If you want reward audio, place the mp3 in <strong>public/assets/audio</strong> and set the audio filename below (example: dumbanimal.mp3).</li>
+            <li>In each media source settings, enable <strong>Restart playback when source becomes active</strong>.</li>
+            <li>In each media source settings, enable <strong>Show nothing when playback ends</strong>.</li>
+            <li>In your scene list, click the source eyeball icon so each reward source starts <strong>hidden by default</strong>.</li>
+            <li>For audio in hybrid rewards, add the audio clip as an OBS media source in this same group and include that source name in the mapping fields below.</li>
             <li>Create matching Twitch reward titles and register those exact titles below.</li>
           </ol>
         </div>
       </details>
 
       <div class="obs-reward-form">
-        <label class="checkbox">
-          <input id="obsRewardDurationRequiredToggle" type="checkbox" />
-          <span>Duration required (disable this to auto-end when media playback completes)</span>
-        </label>
         <label>
           Twitch Reward Title
           <input id="obsRewardTitleInput" type="text" placeholder="Dumb Animal" />
@@ -359,20 +364,8 @@
           <input id="obsRewardSourceInput" type="text" placeholder="Dumb Animal GIF" />
         </label>
         <label>
-          Duration (Primary ms)
-          <input id="obsRewardDurationInput" type="number" min="250" step="250" value="4500" />
-        </label>
-        <label>
           OBS Source Name (Secondary Optional)
           <input id="obsRewardSource2Input" type="text" placeholder="Dumb Animal Overlay" />
-        </label>
-        <label>
-          Duration (Secondary ms)
-          <input id="obsRewardDuration2Input" type="number" min="250" step="250" value="4500" />
-        </label>
-        <label>
-          Audio File (Optional)
-          <input id="obsRewardAudioFileInput" type="text" placeholder="dumbanimal.mp3" />
         </label>
         <button id="obsRewardRegisterBtn" class="button button-primary">Register Mapping</button>
       </div>
@@ -400,14 +393,6 @@
             <button data-route="/alerts" class="button route-btn">Open</button>
           </div>
           <iframe id="streamAlertsFrame" class="stream-frame" title="Alerts Monitor"></iframe>
-        </div>
-
-        <div class="stream-panel">
-          <div class="stream-panel-header">
-            <span>Redemptions</span>
-            <button data-route="/redemptions" class="button route-btn">Open</button>
-          </div>
-          <iframe id="streamRedemptionsFrame" class="stream-frame" title="Redemptions Monitor"></iframe>
         </div>
 
         <div class="stream-panel">

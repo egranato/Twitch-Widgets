@@ -583,7 +583,7 @@ body {
 .obs-reward-form {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   align-items: end;
 }
@@ -594,10 +594,6 @@ body {
   color: var(--ink-1);
   font-weight: 600;
   font-size: 0.9rem;
-}
-
-.obs-reward-form .checkbox {
-  grid-column: span 3;
 }
 
 .obs-reward-form input {

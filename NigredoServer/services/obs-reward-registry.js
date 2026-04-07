@@ -7,48 +7,24 @@ function normalizeRewardKey(rewardTitle) {
   return String(rewardTitle || '').trim().toLowerCase();
 }
 
-function sanitizeDurationMs(value, fallback = 4500) {
-  const parsed = Number.parseInt(String(value), 10);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+function guessDriverSourceName(sourceNames) {
+  const names = Array.isArray(sourceNames) ? sourceNames : [];
+  if (names.length === 0) {
+    return '';
+  }
+
+  const audioLike = names.find((name) => /audio|sound|sfx|voice/i.test(String(name)));
+  return audioLike || names[0];
 }
 
-function sanitizeOptionalDurationMs(value) {
-  if (value === undefined || value === null || String(value).trim() === '') {
-    return null;
-  }
-
-  const parsed = Number.parseInt(String(value), 10);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-}
-
-function sanitizeVolume(value, fallback = 0.9) {
-  const parsed = Number.parseFloat(String(value));
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-
-  if (parsed < 0) {
-    return 0;
-  }
-
-  if (parsed > 1) {
-    return 1;
-  }
-
-  return parsed;
-}
-
-function normalizeSources(rawSources, fallbackSourceName, fallbackDurationMs) {
+function normalizeSources(rawSources, fallbackSourceName) {
   const candidateSources = Array.isArray(rawSources)
     ? rawSources
-    : (fallbackSourceName ? [{ sourceName: fallbackSourceName, durationMs: fallbackDurationMs }] : []);
+    : (fallbackSourceName ? [{ sourceName: fallbackSourceName }] : []);
 
   const normalized = candidateSources
-    .map((item) => ({
-      sourceName: String(item?.sourceName || '').trim(),
-      durationMs: sanitizeOptionalDurationMs(item?.durationMs),
-    }))
-    .filter((item) => item.sourceName);
+    .map((item) => String(item?.sourceName || '').trim())
+    .filter((name) => name.length > 0);
 
   return normalized;
 }
@@ -83,25 +59,14 @@ function writeRegistry(filePath, payload) {
 }
 
 function toPublicMapping(mapping) {
-  const sources = normalizeSources(mapping.sources, mapping.sourceName, mapping.durationMs);
-
-  let audio = null;
-  if (mapping.audio && typeof mapping.audio === 'object') {
-    const fileName = String(mapping.audio.fileName || '').trim();
-    if (fileName) {
-      audio = {
-        fileName,
-        volume: sanitizeVolume(mapping.audio.volume, 0.9),
-      };
-    }
-  }
+  const sources = normalizeSources(mapping.sources, mapping.sourceName);
+  const driverSource = guessDriverSourceName(sources);
 
   return {
     rewardTitle: String(mapping.rewardTitle || '').trim(),
     sources,
-    sourceName: sources[0]?.sourceName || '',
-    durationMs: sources[0]?.durationMs ?? null,
-    audio,
+    sourceName: sources[0] || '',
+    driverSource,
     key: normalizeRewardKey(mapping.rewardTitle),
     updatedAt: mapping.updatedAt || null,
   };
@@ -128,20 +93,9 @@ module.exports = function createObsRewardRegistry(options = {}) {
     return found || null;
   };
 
-  const upsertMapping = ({ rewardTitle, sourceName, durationMs, sources, audio }) => {
+  const upsertMapping = ({ rewardTitle, sourceName, sources }) => {
     const normalizedRewardTitle = String(rewardTitle || '').trim();
-    const normalizedSources = normalizeSources(sources, sourceName, durationMs);
-
-    let normalizedAudio = null;
-    if (audio && typeof audio === 'object') {
-      const fileName = String(audio.fileName || '').trim();
-      if (fileName) {
-        normalizedAudio = {
-          fileName,
-          volume: sanitizeVolume(audio.volume, 0.9),
-        };
-      }
-    }
+    const normalizedSources = normalizeSources(sources, sourceName);
 
     if (!normalizedRewardTitle) {
       throw new Error('Reward title is required');
@@ -160,7 +114,6 @@ module.exports = function createObsRewardRegistry(options = {}) {
     nextMappings.push({
       rewardTitle: normalizedRewardTitle,
       sources: normalizedSources,
-      audio: normalizedAudio,
       updatedAt: nowIso,
     });
 

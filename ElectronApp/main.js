@@ -51,6 +51,8 @@ const DEFAULT_SETTINGS = {
   port: 3000,
   envFilePath: path.resolve(SERVER_CWD, '.env'),
   userCredsPath: path.resolve(SERVER_CWD, 'user-creds.json'),
+  followAudioFilePath: '',
+  subscriptionAudioFilePath: '',
   obsAudioOwnerMode: true,
   desktopTtsEnabled: true,
   obsAutoOpenFullOnStart: false,
@@ -62,7 +64,7 @@ const ROUTE_PATHS = {
   full: '/full',
   chat: '/chat',
   alerts: '/alerts',
-  redemptions: '/redemptions',
+  // redemptions: '/redemptions',
   audioManager: '/audio-manager',
   auth: '/auth',
 };
@@ -99,7 +101,6 @@ function getRoutes() {
     full: getRouteUrl(ROUTE_PATHS.full),
     chat: getRouteUrl(ROUTE_PATHS.chat),
     alerts: getRouteUrl(ROUTE_PATHS.alerts),
-    redemptions: getRouteUrl(ROUTE_PATHS.redemptions),
     audioManager: getRouteUrl(ROUTE_PATHS.audioManager),
     auth: getRouteUrl(ROUTE_PATHS.auth),
   };
@@ -186,6 +187,14 @@ function sanitizeSettings(raw) {
     ? normalized.userCredsPath.trim()
     : DEFAULT_SETTINGS.userCredsPath;
 
+  const followAudioFilePath = typeof normalized.followAudioFilePath === 'string'
+    ? normalized.followAudioFilePath.trim()
+    : '';
+
+  const subscriptionAudioFilePath = typeof normalized.subscriptionAudioFilePath === 'string'
+    ? normalized.subscriptionAudioFilePath.trim()
+    : '';
+
   const audioMode = ['auto', 'obs-only', 'electron-only'].includes(normalized.audioMode)
     ? normalized.audioMode
     : DEFAULT_SETTINGS.audioMode;
@@ -195,6 +204,8 @@ function sanitizeSettings(raw) {
     port,
     envFilePath,
     userCredsPath,
+    followAudioFilePath,
+    subscriptionAudioFilePath,
     obsAudioOwnerMode: Boolean(normalized.obsAudioOwnerMode),
     desktopTtsEnabled: Boolean(normalized.desktopTtsEnabled),
     obsAutoOpenFullOnStart: Boolean(normalized.obsAutoOpenFullOnStart),
@@ -221,6 +232,14 @@ function validateSettingsCandidate(candidate) {
 
   if (typeof candidate.userCredsPath !== 'string' || !candidate.userCredsPath.trim()) {
     errors.push('User Creds Path is required.');
+  }
+
+  if (typeof candidate.followAudioFilePath !== 'string' || !candidate.followAudioFilePath.trim()) {
+    errors.push('Follow Sound File Path is required.');
+  }
+
+  if (typeof candidate.subscriptionAudioFilePath !== 'string' || !candidate.subscriptionAudioFilePath.trim()) {
+    errors.push('Subscription Sound File Path is required.');
   }
 
   return errors;
@@ -307,6 +326,8 @@ function runStartupDiagnostics() {
   const diagnostics = [];
   const envPath = settings.envFilePath;
   const userCredsPath = settings.userCredsPath;
+  const followAudioFilePath = settings.followAudioFilePath;
+  const subscriptionAudioFilePath = settings.subscriptionAudioFilePath;
 
   if (!checkPathExists(envPath)) {
     diagnostics.push({
@@ -319,6 +340,30 @@ function runStartupDiagnostics() {
     diagnostics.push({
       level: 'warning',
       message: `Missing user-creds.json at ${userCredsPath}`,
+    });
+  }
+
+  if (!followAudioFilePath) {
+    diagnostics.push({
+      level: 'warning',
+      message: 'Follow audio file is not configured in Desktop Settings.',
+    });
+  } else if (!checkPathExists(followAudioFilePath)) {
+    diagnostics.push({
+      level: 'warning',
+      message: `Configured follow audio file is missing at ${followAudioFilePath}`,
+    });
+  }
+
+  if (!subscriptionAudioFilePath) {
+    diagnostics.push({
+      level: 'warning',
+      message: 'Subscription audio file is not configured in Desktop Settings.',
+    });
+  } else if (!checkPathExists(subscriptionAudioFilePath)) {
+    diagnostics.push({
+      level: 'warning',
+      message: `Configured subscription audio file is missing at ${subscriptionAudioFilePath}`,
     });
   }
 
@@ -379,6 +424,8 @@ async function startServerProcess() {
       PORT: activePort,
       DOTENV_CONFIG_PATH: settings.envFilePath,
       USER_CREDS_PATH: settings.userCredsPath,
+      FOLLOW_AUDIO_FILE_PATH: settings.followAudioFilePath,
+      SUBSCRIPTION_AUDIO_FILE_PATH: settings.subscriptionAudioFilePath,
       LOG_DIR: logFolder,
       DESKTOP_TTS_ENABLED: String(settings.desktopTtsEnabled),
     },
@@ -745,7 +792,9 @@ function registerIpcHandlers() {
           previous.port !== merged.port ||
           previous.baseHost !== merged.baseHost ||
           previous.envFilePath !== merged.envFilePath ||
-          previous.userCredsPath !== merged.userCredsPath
+          previous.userCredsPath !== merged.userCredsPath ||
+          previous.followAudioFilePath !== merged.followAudioFilePath ||
+          previous.subscriptionAudioFilePath !== merged.subscriptionAudioFilePath
         );
 
       updateState({

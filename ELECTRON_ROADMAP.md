@@ -285,6 +285,26 @@ Status: Shelved (Local-Only Complete)
 6. Alert presentation polish: add configurable fade/slide transition animations for queued alerts.
 7. UX friendliness upgrade: preserve unsaved settings drafts during state refresh, show explicit "not saved" indicator, and add clearer apply/restart guidance.
 
+## Backlog - Angular Legacy Cleanup (Post OBS-First Rewards)
+Status: Deferred / Track in Maintenance
+
+### Why
+- Redemptions are now OBS-first and managed outside Angular routes/components.
+- Angular still contains legacy redemption components and socket plumbing that are likely no longer used.
+
+### Candidate Cleanup Items
+1. Remove `PointRedemptionsComponent` and `RewardMediaComponent` from Angular module declarations/imports.
+2. Remove unused redemption component files under `AlbedoClient/src/app/components/point-redemptions/` if no longer referenced.
+3. Remove redemption socket pipeline from `SocketService` (`point-redeem` listener and `fulfillPointReward`).
+4. Remove `RedemptionEvent` model/types if no longer referenced.
+5. Remove legacy rewards data table (`rewards.data.ts`) and related dead references.
+
+### Validation After Cleanup
+1. Angular build succeeds with no missing symbol/import errors.
+2. `/full`, `/chat`, and `/alerts` continue to function as expected.
+3. Follow/sub/cheer visuals still render correctly.
+4. OBS-first redemption flow remains unaffected.
+
 ## Suggested Execution Order
 1. Milestone 1
 2. Milestone 2

@@ -130,9 +130,19 @@ module.exports = function setupTwitchPubSub(container) {
               logger.info(`New Follower: ${newFollower}`);
               // Enqueue follow alert sound
               if (container.audioManagerHandlers) {
+                const followAudioPath = container.alertAudioConfig
+                  ? container.alertAudioConfig.resolveAudioUrl('follow')
+                  : '';
+
+                if (!followAudioPath) {
+                  logger.warning('Follow audio is not configured; emitting visual follow alert without sound.');
+                  container.io.emit('follow', newFollower);
+                  break;
+                }
+
                 container.audioManagerHandlers.enqueueAudio({
                   type: 'follow',
-                  filePath: '/assets/audio/follow.mp3',
+                  filePath: followAudioPath,
                   volume: 0.85,
                   priority: 'normal',
                   cooldownMs: 3000, // Avoid rapid-fire follows
