@@ -42,6 +42,8 @@ const browseFollowAudioBtn = document.getElementById('browseFollowAudioBtn');
 const browseSubscriptionAudioBtn = document.getElementById('browseSubscriptionAudioBtn');
 const settingsTabs = document.querySelectorAll('.settings-tab');
 const settingsPanels = document.querySelectorAll('.settings-panel');
+const appTabs = document.querySelectorAll('.app-tab');
+const appTabPanes = document.querySelectorAll('.app-tab-pane');
 
 const checkServerStatus = document.getElementById('checkServerStatus');
 const checkEnvStatus = document.getElementById('checkEnvStatus');
@@ -363,6 +365,66 @@ function activateSettingsTab(tabName) {
   });
 }
 
+function activateAppTab(tabName) {
+  appTabs.forEach((tab) => {
+    const active = tab.getAttribute('data-app-tab') === tabName;
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+
+  appTabPanes.forEach((pane) => {
+    const active = pane.getAttribute('data-app-pane') === tabName;
+    pane.classList.toggle('active', active);
+    pane.hidden = !active;
+  });
+}
+
+function setAccordionState(card, expanded) {
+  const trigger = card.querySelector('.accordion-trigger');
+  const body = card.querySelector('.accordion-body');
+  if (!trigger || !body) {
+    return;
+  }
+
+  trigger.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  body.hidden = !expanded;
+}
+
+function initializeAccordions() {
+  const accordionCards = document.querySelectorAll('.accordion-card');
+
+  accordionCards.forEach((card) => {
+    if (card.dataset.accordionReady === 'true') {
+      return;
+    }
+
+    const title = String(card.dataset.accordionTitle || 'Section').trim();
+    const openByDefault = card.dataset.accordionOpen === 'true';
+
+    const body = document.createElement('div');
+    body.className = 'accordion-body';
+
+    while (card.firstChild) {
+      body.appendChild(card.firstChild);
+    }
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'accordion-trigger';
+    trigger.innerHTML = `<span>${title}</span><span class="accordion-chevron">></span>`;
+
+    trigger.addEventListener('click', () => {
+      const expanded = trigger.getAttribute('aria-expanded') === 'true';
+      setAccordionState(card, !expanded);
+    });
+
+    card.appendChild(trigger);
+    card.appendChild(body);
+    card.dataset.accordionReady = 'true';
+    setAccordionState(card, openByDefault);
+  });
+}
+
 function setDiagnostics(diagnostics) {
   diagnosticsList.innerHTML = '';
 
@@ -615,6 +677,7 @@ function setFrameSource(frame, url, options = {}) {
 
   frame.src = url;
   frame.dataset.currentSrc = url;
+
 }
 
 function renderStreamManager(state, options = {}) {
@@ -849,6 +912,13 @@ settingsTabs.forEach((tabButton) => {
   });
 });
 
+appTabs.forEach((tabButton) => {
+  tabButton.addEventListener('click', () => {
+    const tabName = tabButton.getAttribute('data-app-tab') || 'setup';
+    activateAppTab(tabName);
+  });
+});
+
 browseEnvBtn.addEventListener('click', async () => {
   const result = await window.desktopAPI.pickFile({
     fileType: 'env',
@@ -908,10 +978,12 @@ quickStartServerBtn.addEventListener('click', async () => {
 });
 
 quickOpenSettingsPathsBtn.addEventListener('click', () => {
+  activateAppTab('setup');
   activateSettingsTab('paths');
 });
 
 quickOpenSettingsCredsBtn.addEventListener('click', () => {
+  activateAppTab('setup');
   activateSettingsTab('paths');
 });
 
@@ -921,6 +993,7 @@ quickOpenAuthBtn.addEventListener('click', async () => {
 
 if (quickOpenSettingsFollowAudioBtn) {
   quickOpenSettingsFollowAudioBtn.addEventListener('click', () => {
+    activateAppTab('setup');
     activateSettingsTab('obs');
     followAudioFileInput?.focus();
   });
@@ -928,6 +1001,7 @@ if (quickOpenSettingsFollowAudioBtn) {
 
 if (quickOpenSettingsSubscriptionAudioBtn) {
   quickOpenSettingsSubscriptionAudioBtn.addEventListener('click', () => {
+    activateAppTab('setup');
     activateSettingsTab('obs');
     subscriptionAudioFileInput?.focus();
   });
@@ -945,6 +1019,7 @@ quickRunDiagnosticsBtn.addEventListener('click', async () => {
 });
 
 quickOpenFullBtn.addEventListener('click', async () => {
+  activateAppTab('stream');
   await window.desktopAPI.openOverlay('/full');
 });
 
@@ -1183,9 +1258,11 @@ window.desktopAPI.onStateChanged((state) => {
   render(state);
 });
 
+initializeAccordions();
+activateSettingsTab('general');
+activateAppTab('stream');
+
 hydrate().catch((error) => {
   errorText.hidden = false;
   errorText.textContent = `Failed to initialize UI: ${error.message}`;
 });
-
-activateSettingsTab('general');

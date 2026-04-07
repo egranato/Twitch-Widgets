@@ -568,12 +568,15 @@ async function stopServerProcess() {
 }
 
 function createMainWindow() {
+  const desktopAppIconPath = resolveDesktopAppIconPath();
+
   mainWindow = new BrowserWindow({
     width: 980,
     height: 700,
     minWidth: 860,
     minHeight: 580,
     title: 'Twitch Widgets Desktop',
+    icon: desktopAppIconPath,
     webPreferences: {
       contextIsolation: true,
       preload: path.resolve(__dirname, 'preload.js'),
@@ -591,12 +594,49 @@ function createMainWindow() {
   });
 }
 
+function resolveAssetPath(fileName) {
+  const candidates = [
+    path.resolve(__dirname, 'assets', fileName),
+    path.resolve(process.resourcesPath || '', 'assets', fileName),
+    path.resolve(process.resourcesPath || '', 'ElectronApp', 'assets', fileName),
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return '';
+}
+
+function resolveDesktopAppIconPath() {
+  return resolveAssetPath('TwitchCompanionIcon256.ico')
+    || resolveAssetPath('TwitchCompanionIcon128.ico')
+    || resolveAssetPath('TwitchCompanionIcon64.ico')
+    || resolveAssetPath('TwitchCompanionIcon32.ico');
+}
+
+function resolveTrayIconPath() {
+  return resolveAssetPath('TwitchCompanionIcon32.ico')
+    || resolveAssetPath('TwitchCompanionIcon24.ico')
+    || resolveAssetPath('TwitchCompanionIcon20.ico')
+    || resolveAssetPath('TwitchCompanionIcon16.ico');
+}
+
 function buildTrayIcon() {
-  const dataUri =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAQAAAC1QeVaAAAAK0lEQVR42mNgQAP/Gf4zMDCwMDAw+M8w/P//PzMDA8P///8MDAwMDAwAAKPQCT2+TllkAAAAASUVORK5CYII=';
-  const icon = nativeImage.createFromDataURL(dataUri);
-  icon.setTemplateImage(true);
-  return icon;
+  const trayIconPath = resolveTrayIconPath();
+  if (fs.existsSync(trayIconPath)) {
+    const icon = nativeImage.createFromPath(trayIconPath);
+    if (!icon.isEmpty()) {
+      return icon;
+    }
+  }
+
+  // Fallback icon to avoid breaking tray creation if file lookup fails.
+  return nativeImage.createFromDataURL(
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAQAAAC1QeVaAAAAK0lEQVR42mNgQAP/Gf4zMDCwMDAw+M8w/P//PzMDA8P///8MDAwMDAwAAKPQCT2+TllkAAAAASUVORK5CYII='
+  );
 }
 
 function rebuildTrayMenu() {

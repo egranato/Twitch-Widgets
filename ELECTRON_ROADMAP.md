@@ -284,6 +284,8 @@ Status: Shelved (Local-Only Complete)
 5. Desktop lifecycle preference: optional "Quit app when window is closed" toggle (instead of tray-only background behavior on Windows).
 6. Alert presentation polish: add configurable fade/slide transition animations for queued alerts.
 7. UX friendliness upgrade: preserve unsaved settings drafts during state refresh, show explicit "not saved" indicator, and add clearer apply/restart guidance.
+8. Stream Manager preview dark mode: add optional `?darkMode=true` query parameter to `/chat`, `/alerts`, and `/full` routes so desktop Stream Manager preview frames render with dark backgrounds instead of default white backgrounds.
+9. **Icon Branding for Desktop App** — Status: **Completed**. Designed and wired multi-resolution icon set (16/20/24/32 px for system tray; 32–256 px for desktop window and installer). Applied tray icon via `buildTrayIcon()` with fallback chain and desktop window icon via `BrowserWindow` icon property. Updated Electron-builder Windows config to include assets in packaged application.
 
 ## Backlog - Angular Legacy Cleanup (Post OBS-First Rewards)
 Status: Deferred / Track in Maintenance

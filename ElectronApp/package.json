@@ -27,6 +27,7 @@
       "main.js",
       "preload.js",
       "renderer/**/*",
+      "assets/**/*",
       "package.json"
     ],
     "extraResources": [
@@ -52,6 +53,7 @@
     ],
     "win": {
       "signAndEditExecutable": false,
+      "icon": "assets/TwitchCompanionIcon256.ico",
       "target": [
         {
           "target": "nsis",
