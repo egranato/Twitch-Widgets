@@ -6,11 +6,22 @@ const commonUtils = require('./common-utils');
 
 const processTTS = ({ container, data, message }) => {
   const { gtts, obs, sleep, io, logger } = container;
+
+  // Skip TTS processing if desktop TTS is disabled
+  const desktopTtsEnabled = process.env.DESKTOP_TTS_ENABLED !== 'false';
+  if (!desktopTtsEnabled) {
+    return Promise.resolve();
+  }
+
   const filename = commonUtils.createMp3FileName(data.id);
 
   return gtts
     .save(filename, message)
-    .then(() => obs.toggleChatHead(true))
+    .then(() => {
+      return obs.toggleChatHead(true).catch((error) => {
+        logger.warning(`Skipping ChatHead toggle because OBS is unavailable: ${error.message}`);
+      });
+    })
     .then(() => sleep(500))
     .then(() => {
       // Emit TTS event for desktop-local playback only.

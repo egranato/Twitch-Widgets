@@ -22,11 +22,15 @@ const USER_CREDS_PATH = process.env.USER_CREDS_PATH || 'user-creds.json';
 const authService = require('./services/auth-service');
 const twitchApi = require('./services/twitch-api');
 const createContainer = require('./services/container');
+const createObsRewardRegistry = require('./services/obs-reward-registry');
 
 const app = express();
 const server = require('http').createServer(app);
 // CORS for Angular dev
 app.use(cors({ origin: 'http://localhost:4200' }));
+app.use(express.json());
+
+const obsRewardRegistry = createObsRewardRegistry({ logger });
 
 
 // get global items that will be necessary for functioning later
@@ -55,6 +59,7 @@ authService
       userCreds,
       user,
       allBadges,
+      obsRewardRegistry,
     });
 
     // Socket.io event handlers

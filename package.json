@@ -6,6 +6,9 @@
     "desktop:install": "npm --prefix ElectronApp install",
     "desktop:dev": "npm --prefix ElectronApp run dev",
     "desktop:build": "npm --prefix NigredoServer install --omit=dev && npm --prefix ElectronApp run build",
-    "desktop:dist": "npm --prefix NigredoServer install --omit=dev && npm --prefix ElectronApp run dist"
+    "desktop:dist": "npm --prefix NigredoServer install --omit=dev && npm --prefix ElectronApp run dist",
+    "reward:create": "node NigredoServer/scripts/create-channel-reward.js",
+    "reward:create:videos": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-video-rewards.ps1",
+    "reward:create:videos:dry": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/create-video-rewards.ps1 -WhatIf"
   }
 }

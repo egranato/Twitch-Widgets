@@ -102,6 +102,28 @@ From repo root:
 - `npm run desktop:build`
 - `npm run desktop:dist`
 
+## Create Channel Point Rewards (CLI)
+
+Create rewards using the same user identity/token domain used by the app for reward fulfillment.
+
+From repo root:
+
+`npm run reward:create -- --title "Shotgun" --cost 5000 --prompt "Play the shotgun clip"`
+
+Common options:
+- `--channel <login>` override channel login (otherwise uses `BOT_CHANNEL` from `.env`)
+- `--enabled true|false`
+- `--userInputRequired true|false`
+- `--backgroundColor "#9147FF"`
+- `--maxPerStream <int>`
+- `--maxPerUserPerStream <int>`
+- `--globalCooldownSeconds <int>`
+
+Notes:
+- Requires `CLIENT_ID` and `CLIENT_SECRET` in `.env`.
+- Uses `USER_CREDS_PATH` if set; otherwise `NigredoServer/user-creds.json`.
+- Automatically refreshes expired user tokens and persists the refreshed creds.
+
 ## Checkpoint EXE (Stream-Night Quick Build)
 
 Use this when you want a packaged desktop binary for tonight's stream.

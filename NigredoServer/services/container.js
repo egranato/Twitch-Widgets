@@ -6,7 +6,18 @@ const AudioQueue = require('./audio-queue');
 const VolumeProfiles = require('./volume-profiles');
 const RewardDisplayQueue = require('./reward-display-queue');
 
-module.exports = function createContainer({ io, logger, obs, gtts, mp3Duration, sleep, userCreds, user, allBadges }) {
+module.exports = function createContainer({
+  io,
+  logger,
+  obs,
+  gtts,
+  mp3Duration,
+  sleep,
+  userCreds,
+  user,
+  allBadges,
+  obsRewardRegistry,
+}) {
   const audioQueue = new AudioQueue({ logger });
   const volumeProfiles = new VolumeProfiles({ logger });
   const rewardDisplayQueue = new RewardDisplayQueue({ io, logger });
@@ -21,6 +32,7 @@ module.exports = function createContainer({ io, logger, obs, gtts, mp3Duration, 
     userCreds,
     user,
     allBadges,
+    obsRewardRegistry,
     audioQueue,
     volumeProfiles,
     rewardDisplayQueue,

@@ -105,13 +105,15 @@ function getRoutes() {
   };
 }
 
-function postJson(url) {
+function postJson(url, payload = {}) {
+  const bodyPayload = JSON.stringify(payload || {});
+
   return new Promise((resolve, reject) => {
     const req = http.request(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength('{}'),
+        'Content-Length': Buffer.byteLength(bodyPayload),
       },
     }, (res) => {
       let body = '';
@@ -133,8 +135,36 @@ function postJson(url) {
     });
 
     req.on('error', reject);
-    req.write('{}');
+    req.write(bodyPayload);
     req.end();
+  });
+}
+
+function getJson(url) {
+  return new Promise((resolve, reject) => {
+    const req = http.get(url, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        if (!body) {
+          resolve({ ok: res.statusCode && res.statusCode < 400 });
+          return;
+        }
+
+        try {
+          resolve(JSON.parse(body));
+        } catch (error) {
+          reject(new Error('Invalid JSON response'));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.setTimeout(3000, () => {
+      req.destroy(new Error('Request timed out'));
+    });
   });
 }
 
@@ -350,6 +380,7 @@ async function startServerProcess() {
       DOTENV_CONFIG_PATH: settings.envFilePath,
       USER_CREDS_PATH: settings.userCredsPath,
       LOG_DIR: logFolder,
+      DESKTOP_TTS_ENABLED: String(settings.desktopTtsEnabled),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -894,6 +925,58 @@ function registerIpcHandlers() {
       return { ok: false, error: error.message };
     }
   });
+
+  ipcMain.handle('desktop:get-obs-status', async () => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await getJson(`${baseUrl}/api/obs/status`);
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('desktop:connect-obs', async () => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await postJson(`${baseUrl}/api/obs/connect`);
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('desktop:get-obs-reward-mappings', async () => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await getJson(`${baseUrl}/api/obs/rewards`);
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('desktop:register-obs-reward-mapping', async (_, payload) => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await postJson(`${baseUrl}/api/obs/rewards/register`, payload || {});
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('desktop:remove-obs-reward-mapping', async (_, rewardTitle) => {
+    const baseUrl = getServerBaseUrl();
+    try {
+      const response = await postJson(`${baseUrl}/api/obs/rewards/remove`, {
+        rewardTitle: String(rewardTitle || ''),
+      });
+      return { ok: true, ...response };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
 }
 
 function registerMainProcessErrorHandlers() {
@@ -928,14 +1011,15 @@ if (!singleInstanceLock) {
 }
 
 app.on('window-all-closed', async () => {
-  if (tray && process.platform === 'win32') {
-    return;
-  }
   isQuitting = true;
   await stopServerProcess();
-  if (process.platform !== 'darwin') {
-    app.quit();
+
+  if (tray) {
+    tray.destroy();
+    tray = null;
   }
+
+  app.quit();
 });
 
 app.on('before-quit', async () => {

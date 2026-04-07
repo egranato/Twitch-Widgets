@@ -44,6 +44,20 @@ body {
   color: var(--ink-1);
 }
 
+.obs-banner {
+  border-color: #f2deaf;
+  background: #fff8e8;
+}
+
+.obs-banner-row {
+  align-items: flex-start;
+}
+
+.obs-banner .hint {
+  margin: 6px 0 0;
+  max-width: 640px;
+}
+
 .card {
   background: var(--bg-1);
   border: 1px solid var(--line);
@@ -566,6 +580,63 @@ body {
   color: #888;
 }
 
+.obs-reward-form {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.obs-reward-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink-1);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.obs-reward-form .checkbox {
+  grid-column: span 3;
+}
+
+.obs-reward-form input {
+  border: 1px solid #c8d5e6;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font: inherit;
+  color: var(--ink-0);
+  background: #fff;
+}
+
+.obs-reward-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.obs-reward-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fbfdff;
+  padding: 10px;
+}
+
+.obs-reward-title {
+  font-weight: 700;
+  color: var(--ink-0);
+}
+
+.obs-reward-meta {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--ink-1);
+}
+
 .stream-manager-grid {
   margin-top: 12px;
   display: grid;
@@ -661,6 +732,14 @@ body {
   }
 
   .stream-manager-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .obs-reward-form {
+    grid-template-columns: 1fr;
+  }
+
+  .obs-reward-row {
     grid-template-columns: 1fr;
   }
 }

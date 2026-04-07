@@ -56,6 +56,21 @@ const streamChatFrame = document.getElementById('streamChatFrame');
 const streamAlertsFrame = document.getElementById('streamAlertsFrame');
 const streamRedemptionsFrame = document.getElementById('streamRedemptionsFrame');
 const streamFullFrame = document.getElementById('streamFullFrame');
+const obsReconnectBanner = document.getElementById('obsReconnectBanner');
+const obsReconnectMessage = document.getElementById('obsReconnectMessage');
+const connectObsBtn = document.getElementById('connectObsBtn');
+const obsRewardRefreshBtn = document.getElementById('obsRewardRefreshBtn');
+const obsRewardRegisterBtn = document.getElementById('obsRewardRegisterBtn');
+const obsRewardDurationRequiredToggle = document.getElementById('obsRewardDurationRequiredToggle');
+const obsRewardTitleInput = document.getElementById('obsRewardTitleInput');
+const obsRewardSourceInput = document.getElementById('obsRewardSourceInput');
+const obsRewardDurationInput = document.getElementById('obsRewardDurationInput');
+const obsRewardSource2Input = document.getElementById('obsRewardSource2Input');
+const obsRewardDuration2Input = document.getElementById('obsRewardDuration2Input');
+const obsRewardAudioFileInput = document.getElementById('obsRewardAudioFileInput');
+const obsRewardMappingsList = document.getElementById('obsRewardMappingsList');
+const unconfiguredRewardBanner = document.getElementById('unconfiguredRewardBanner');
+const unconfiguredRewardList = document.getElementById('unconfiguredRewardList');
 
 let latestState = null;
 let desktopTtsSocket = null;
@@ -64,6 +79,28 @@ let desktopTtsQueue = [];
 let desktopTtsPlaying = false;
 let settingsInitialized = false;
 let lastAppliedSettings = null;
+let lastRenderedServerStatus = 'stopped';
+let latestObsStatus = null;
+let obsStatusRefreshInFlight = false;
+let latestObsRewardMappings = [];
+let obsRewardMappingsRefreshInFlight = false;
+let unconfiguredRewardEvents = [];
+
+function isDurationRequiredForObsReward() {
+  return Boolean(obsRewardDurationRequiredToggle?.checked);
+}
+
+function syncObsRewardDurationInputs() {
+  const required = isDurationRequiredForObsReward();
+
+  if (obsRewardDurationInput) {
+    obsRewardDurationInput.disabled = !required;
+  }
+
+  if (obsRewardDuration2Input) {
+    obsRewardDuration2Input.disabled = !required;
+  }
+}
 
 function normalizeSettings(settings) {
   return {
@@ -190,6 +227,7 @@ function processDesktopTtsQueue() {
 function disconnectDesktopTtsSocket() {
   if (desktopTtsSocket) {
     desktopTtsSocket.off('tts-desktop-message');
+    desktopTtsSocket.off('reward-unconfigured');
     desktopTtsSocket.disconnect();
     desktopTtsSocket = null;
   }
@@ -229,6 +267,22 @@ async function ensureDesktopTtsConnection(state) {
   desktopTtsSocket.on('tts-desktop-message', (id) => {
     desktopTtsQueue.push(id);
     processDesktopTtsQueue();
+  });
+
+  desktopTtsSocket.on('reward-unconfigured', (payload) => {
+    if (!payload || !payload.rewardTitle) {
+      return;
+    }
+
+    const entry = {
+      rewardTitle: String(payload.rewardTitle || ''),
+      userName: String(payload.userName || 'Unknown user'),
+      redeemedAt: String(payload.redeemedAt || new Date().toISOString()),
+    };
+
+    unconfiguredRewardEvents = [entry, ...unconfiguredRewardEvents].slice(0, 12);
+    renderUnconfiguredRewardBanner();
+    showInlineMessage(`Reward '${entry.rewardTitle}' is not mapped to OBS yet. Redemption was refunded.`);
   });
 }
 
@@ -335,6 +389,9 @@ function render(state) {
   latestState = state;
   setStatus(state.serverStatus);
 
+  const transitionedToRunning =
+    state.serverStatus === 'running' && lastRenderedServerStatus !== 'running';
+
   const running = state.serverStatus === 'running';
   const busy = state.serverStatus === 'starting' || state.serverStatus === 'stopping';
 
@@ -353,21 +410,211 @@ function render(state) {
     preserveDraft: hasUnsavedSettingsChanges(),
   });
   renderAudioStatus(state);
-  renderStreamManager(state);
+  renderStreamManager(state, { forceReload: transitionedToRunning });
+  renderObsReconnectBanner(state, latestObsStatus);
+  renderObsRewardMappingControls(state);
+  renderObsRewardMappings(latestObsRewardMappings);
+  renderUnconfiguredRewardBanner();
+  refreshObsStatus(state).catch(() => {
+    // Ignore transient OBS status polling failures.
+  });
+  refreshObsRewardMappings(state).catch(() => {
+    // Ignore transient reward mapping fetch failures.
+  });
   ensureDesktopTtsConnection(state).catch(() => {
     // Ignore connection setup errors to avoid noisy UI interruptions.
   });
   processDesktopTtsQueue();
   restartServerBtn.hidden = !state.settingsRestartRequired;
   updateQuickSetupChecklist(state);
+
+  lastRenderedServerStatus = state.serverStatus;
 }
 
-function setFrameSource(frame, url) {
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderObsRewardMappingControls(state) {
+  const serverRunning = state?.serverStatus === 'running';
+
+  if (obsRewardRefreshBtn) {
+    obsRewardRefreshBtn.disabled = !serverRunning;
+  }
+
+  if (obsRewardRegisterBtn) {
+    obsRewardRegisterBtn.disabled = !serverRunning;
+  }
+}
+
+function renderObsRewardMappings(mappings) {
+  if (!obsRewardMappingsList) {
+    return;
+  }
+
+  const items = Array.isArray(mappings) ? mappings : [];
+  if (items.length === 0) {
+    obsRewardMappingsList.innerHTML = '<p class="hint">No OBS reward mappings registered yet.</p>';
+    return;
+  }
+
+  const rows = items.map((item) => {
+    const sourceText = Array.isArray(item.sources)
+      ? item.sources
+        .map((src) => `${escapeHtml(src.sourceName)} (${src.durationMs ? `${Number(src.durationMs)}ms` : 'until media ends'})`)
+        .join(' | ')
+      : `${escapeHtml(item.sourceName)} (${item.durationMs ? `${Number(item.durationMs)}ms` : 'until media ends'})`;
+
+    const audioText = item.audio && item.audio.fileName
+      ? ` · Audio: ${escapeHtml(item.audio.fileName)} (${item.audio.volume ?? 0.9})`
+      : '';
+
+    return `
+      <div class="obs-reward-row">
+        <div>
+          <div class="obs-reward-title">${escapeHtml(item.rewardTitle)}</div>
+          <div class="obs-reward-meta">OBS Sources: <strong>${sourceText}</strong>${audioText}</div>
+        </div>
+        <button class="button" data-action="remove-obs-reward" data-reward-title="${escapeHtml(item.rewardTitle)}">Remove</button>
+      </div>
+    `;
+  });
+
+  obsRewardMappingsList.innerHTML = rows.join('');
+}
+
+function renderUnconfiguredRewardBanner() {
+  if (!unconfiguredRewardBanner || !unconfiguredRewardList) {
+    return;
+  }
+
+  if (!Array.isArray(unconfiguredRewardEvents) || unconfiguredRewardEvents.length === 0) {
+    unconfiguredRewardBanner.hidden = true;
+    unconfiguredRewardList.innerHTML = '';
+    return;
+  }
+
+  const rows = unconfiguredRewardEvents.map((item) => {
+    const time = new Date(item.redeemedAt).toLocaleTimeString();
+    return `
+      <div class="obs-reward-row">
+        <div>
+          <div class="obs-reward-title">${escapeHtml(item.rewardTitle)}</div>
+          <div class="obs-reward-meta">Redeemed by ${escapeHtml(item.userName)} at ${escapeHtml(time)}. Configure this reward in OBS Video Reward Mappings below.</div>
+        </div>
+      </div>
+    `;
+  });
+
+  unconfiguredRewardList.innerHTML = rows.join('');
+  unconfiguredRewardBanner.hidden = false;
+}
+
+async function refreshObsRewardMappings(state) {
+  const serverRunning = state?.serverStatus === 'running';
+  if (!serverRunning) {
+    latestObsRewardMappings = [];
+    renderObsRewardMappings(latestObsRewardMappings);
+    return;
+  }
+
+  if (obsRewardMappingsRefreshInFlight) {
+    return;
+  }
+
+  obsRewardMappingsRefreshInFlight = true;
+  try {
+    const result = await window.desktopAPI.getObsRewardMappings();
+    if (result.ok && Array.isArray(result.mappings)) {
+      latestObsRewardMappings = result.mappings;
+      renderObsRewardMappings(latestObsRewardMappings);
+    }
+  } finally {
+    obsRewardMappingsRefreshInFlight = false;
+  }
+}
+
+function describeObsStatus(status) {
+  if (!status) {
+    return 'Checking OBS websocket status...';
+  }
+
+  if (status.connected) {
+    return 'OBS websocket connected.';
+  }
+
+  if (status.connecting) {
+    return 'Attempting to connect to OBS websocket...';
+  }
+
+  const retries = Number.isInteger(status.retryCount) ? status.retryCount : 0;
+  const maxRetries = Number.isInteger(status.maxRetries) ? status.maxRetries : 0;
+  const targetPort = Number.isInteger(status.targetPort) ? status.targetPort : 4455;
+  const targetText = String(targetPort);
+  const errorText = status.lastError ? ` Last error: ${status.lastError}` : '';
+
+  if (status.gaveUp) {
+    return `Automatic retries exhausted (${retries}/${maxRetries}). Attempted OBS websocket port ${targetText}. Check OBS WebSocket Server settings, then click Connect OBS.${errorText}`;
+  }
+
+  return `OBS websocket disconnected. Retrying (${retries}/${maxRetries}) on port ${targetText}...${errorText}`;
+}
+
+function renderObsReconnectBanner(state, obsStatus) {
+  if (!obsReconnectBanner || !obsReconnectMessage || !connectObsBtn) {
+    return;
+  }
+
+  const serverRunning = state?.serverStatus === 'running';
+  const shouldShow =
+    serverRunning
+    && obsStatus
+    && !obsStatus.connected
+    && Boolean(obsStatus.gaveUp);
+
+  obsReconnectBanner.hidden = !shouldShow;
+  obsReconnectMessage.textContent = describeObsStatus(obsStatus);
+  connectObsBtn.disabled = !serverRunning;
+}
+
+async function refreshObsStatus(state) {
+  const serverRunning = state?.serverStatus === 'running';
+  if (!serverRunning) {
+    latestObsStatus = null;
+    renderObsReconnectBanner(state, latestObsStatus);
+    return;
+  }
+
+  if (obsStatusRefreshInFlight) {
+    return;
+  }
+
+  obsStatusRefreshInFlight = true;
+
+  try {
+    const result = await window.desktopAPI.getObsStatus();
+    if (result.ok && result.status) {
+      latestObsStatus = result.status;
+      renderObsReconnectBanner(state, latestObsStatus);
+    }
+  } finally {
+    obsStatusRefreshInFlight = false;
+  }
+}
+
+function setFrameSource(frame, url, options = {}) {
   if (!frame || !url) {
     return;
   }
 
-  if (frame.dataset.currentSrc === url) {
+  const forceReload = Boolean(options.forceReload);
+
+  if (!forceReload && frame.dataset.currentSrc === url) {
     return;
   }
 
@@ -375,16 +622,18 @@ function setFrameSource(frame, url) {
   frame.dataset.currentSrc = url;
 }
 
-function renderStreamManager(state) {
+function renderStreamManager(state, options = {}) {
   const routes = state?.routes;
-  if (!routes) {
+  if (!routes || state?.serverStatus !== 'running') {
     return;
   }
 
-  setFrameSource(streamChatFrame, routes.chat);
-  setFrameSource(streamAlertsFrame, routes.alerts);
-  setFrameSource(streamRedemptionsFrame, routes.redemptions);
-  setFrameSource(streamFullFrame, routes.full);
+  const forceReload = Boolean(options.forceReload);
+
+  setFrameSource(streamChatFrame, routes.chat, { forceReload });
+  setFrameSource(streamAlertsFrame, routes.alerts, { forceReload });
+  setFrameSource(streamRedemptionsFrame, routes.redemptions, { forceReload });
+  setFrameSource(streamFullFrame, routes.full, { forceReload });
 }
 
 function renderSettings(settings, options = {}) {
@@ -785,6 +1034,141 @@ testCheerAlertBtn.addEventListener('click', async () => {
   await runAlertTest('cheer');
   testCheerAlertBtn.disabled = false;
 });
+
+if (connectObsBtn) {
+  connectObsBtn.addEventListener('click', async () => {
+    connectObsBtn.disabled = true;
+
+    const result = await window.desktopAPI.connectObs();
+    if (!result.ok || result.status?.connected !== true) {
+      const message = result.error || result.status?.lastError || 'Unable to connect to OBS websocket.';
+      showInlineMessage(`OBS reconnect failed: ${message}`);
+      connectObsBtn.disabled = false;
+      await refreshObsStatus(latestState);
+      return;
+    }
+
+    showInlineMessage('OBS websocket connected.');
+    latestObsStatus = result.status;
+    renderObsReconnectBanner(latestState, latestObsStatus);
+    connectObsBtn.disabled = false;
+  });
+}
+
+if (obsRewardRefreshBtn) {
+  obsRewardRefreshBtn.addEventListener('click', async () => {
+    await refreshObsRewardMappings(latestState);
+  });
+}
+
+if (obsRewardRegisterBtn) {
+  obsRewardRegisterBtn.addEventListener('click', async () => {
+    const durationRequired = isDurationRequiredForObsReward();
+    const rewardTitle = String(obsRewardTitleInput?.value || '').trim();
+    const primarySourceName = String(obsRewardSourceInput?.value || '').trim();
+    const primaryDurationMs = durationRequired
+      ? Number.parseInt(String(obsRewardDurationInput?.value || '4500'), 10)
+      : null;
+    const secondarySourceName = String(obsRewardSource2Input?.value || '').trim();
+    const secondaryDurationMs = durationRequired
+      ? Number.parseInt(String(obsRewardDuration2Input?.value || '4500'), 10)
+      : null;
+    const audioFileName = String(obsRewardAudioFileInput?.value || '').trim();
+
+    const sources = [];
+    if (primarySourceName) {
+      sources.push({ sourceName: primarySourceName, durationMs: primaryDurationMs });
+    }
+
+    if (secondarySourceName) {
+      sources.push({ sourceName: secondarySourceName, durationMs: secondaryDurationMs });
+    }
+
+    if (!rewardTitle) {
+      showInlineMessage('Reward title is required to register an OBS mapping.');
+      return;
+    }
+
+    if (sources.length === 0) {
+      showInlineMessage('At least one OBS source name is required to register an OBS mapping.');
+      return;
+    }
+
+    if (durationRequired) {
+      const invalidSource = sources.find((item) => !Number.isInteger(item.durationMs) || item.durationMs <= 0);
+      if (invalidSource) {
+        showInlineMessage('Each duration must be a positive integer in milliseconds.');
+        return;
+      }
+    }
+
+    obsRewardRegisterBtn.disabled = true;
+    const result = await window.desktopAPI.registerObsRewardMapping({
+      rewardTitle,
+      sources,
+      audio: audioFileName
+        ? {
+            fileName: audioFileName,
+            volume: 0.9,
+          }
+        : null,
+    });
+    obsRewardRegisterBtn.disabled = false;
+
+    if (!result.ok || result.mapping == null) {
+      const message = result.error || 'Failed to register OBS reward mapping.';
+      showInlineMessage(message);
+      return;
+    }
+
+    showInlineMessage(`Registered OBS mapping for reward '${rewardTitle}'.`);
+    await refreshObsRewardMappings(latestState);
+  });
+}
+
+if (obsRewardMappingsList) {
+  obsRewardMappingsList.addEventListener('click', async (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const action = target.getAttribute('data-action');
+    if (action !== 'remove-obs-reward') {
+      return;
+    }
+
+    const rewardTitle = String(target.getAttribute('data-reward-title') || '').trim();
+    if (!rewardTitle) {
+      return;
+    }
+
+    target.setAttribute('disabled', 'true');
+
+    const result = await window.desktopAPI.removeObsRewardMapping(rewardTitle);
+    if (!result.ok || result.removed !== true) {
+      const message = result.error || `Could not remove mapping for '${rewardTitle}'.`;
+      showInlineMessage(message);
+      target.removeAttribute('disabled');
+      return;
+    }
+
+    showInlineMessage(`Removed OBS mapping for reward '${rewardTitle}'.`);
+    await refreshObsRewardMappings(latestState);
+  });
+}
+
+if (obsRewardDurationRequiredToggle) {
+  obsRewardDurationRequiredToggle.addEventListener('change', () => {
+    syncObsRewardDurationInputs();
+  });
+
+  if (!obsRewardDurationRequiredToggle.checked) {
+    obsRewardDurationRequiredToggle.checked = false;
+  }
+
+  syncObsRewardDurationInputs();
+}
 
 window.desktopAPI.onStateChanged((state) => {
   render(state);

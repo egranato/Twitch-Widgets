@@ -75,7 +75,7 @@ const REWARD_CONFIGS = {
 };
 
 const processReward = async ({ container, event }) => {
-  const { logger, io, rewardDisplayQueue } = container;
+  const { logger, io, obsRewardRegistry, obs, audioManagerHandlers } = container;
   const rewardTitle = event.reward.title;
   const rewardSlug = String(rewardTitle || '')
     .toLowerCase()
@@ -87,43 +87,75 @@ const processReward = async ({ container, event }) => {
 
   logger.info(`Processing reward: ${rewardTitle} from ${event.user_name}`);
 
-  const config = REWARD_CONFIGS[rewardTitle];
+  const dynamicObsMapping = obsRewardRegistry ? obsRewardRegistry.getByRewardTitle(rewardTitle) : null;
+  if (!dynamicObsMapping) {
+    logger.warning(
+      `Reward redeemed without OBS mapping: ${rewardTitle} from ${event.user_name}. Refunding until mapping is configured.`,
+    );
 
-  if (config && config.process) {
-    // Custom reward processing
-    logger.info(`Using custom processor for: ${rewardTitle}`);
-    return config.process({ container, event });
-  } else {
-    // Default: emit to socket if clients connected
-    const clientCount = io.engine.clientsCount;
-    if (clientCount > 0) {
-      const queueOptions = {};
+    io.emit('reward-unconfigured', {
+      id: event.id,
+      rewardId: event.reward?.id,
+      rewardTitle,
+      userName: event.user_name,
+      redeemedAt: new Date().toISOString(),
+      message: `Reward '${rewardTitle}' is not mapped to any OBS sources yet.`,
+    });
 
-      if (hasDedicatedAudio) {
-        logger.info(
-          `Queueing reward audio+visual sync for ${rewardTitle} (${clientCount} connected client(s))`
-        );
-        queueOptions.audio = {
+    return { success: false, autoCancel: true, unconfigured: true };
+  }
+
+  try {
+    const mappedSources = Array.isArray(dynamicObsMapping.sources)
+      ? dynamicObsMapping.sources.filter((item) => item?.sourceName)
+      : [];
+
+    if (mappedSources.length === 0) {
+      throw new Error(`mapping for '${rewardTitle}' has no OBS sources`);
+    }
+
+    logger.info(
+      `Using registered OBS reward mapping for '${rewardTitle}' with ${mappedSources.length} source(s)`,
+    );
+
+    const sourceResults = await Promise.all(
+      mappedSources.map((source) => obs.playRewardSource(source.sourceName, source.durationMs)),
+    );
+
+    if (sourceResults.some((success) => success !== true)) {
+      throw new Error(`one or more OBS sources were not found for reward '${rewardTitle}'`);
+    }
+
+    let mappedAudio = dynamicObsMapping.audio || null;
+    if (!mappedAudio && hasDedicatedAudio) {
+      mappedAudio = {
+        fileName: rewardAudioFileName,
+        volume: 0.9,
+      };
+    }
+
+    if (mappedAudio && audioManagerHandlers) {
+      const fileName = String(mappedAudio.fileName || '').trim();
+      const diskPath = path.resolve('public', 'assets', 'audio', fileName);
+
+      if (fileName && fs.existsSync(diskPath)) {
+        audioManagerHandlers.enqueueAudio({
           type: 'redemption',
-          filePath: `/assets/audio/${rewardAudioFileName}`,
-          volume: 0.9,
-          priority: 'normal',
+          filePath: `/assets/audio/${fileName}`,
+          volume: Number.isFinite(mappedAudio.volume) ? mappedAudio.volume : 0.9,
+          priority: 'high',
           cooldownMs: 0,
           label: `Reward ${rewardTitle} from ${event.user_name}`,
-        };
+        });
       } else {
-        logger.info(`No dedicated reward audio found for ${rewardTitle}; visual-only emit`);
+        logger.warning(`Mapped audio file not found for reward '${rewardTitle}': ${fileName}`);
       }
-
-      logger.info(`Queueing visual redemption for ${rewardTitle} (${clientCount} connected client(s))`);
-      rewardDisplayQueue.enqueue(event, queueOptions);
-
-      return { success: true };
-    } else {
-      // No clients, auto-cancel
-      logger.warning(`No clients connected, auto-canceling reward: ${rewardTitle}`);
-      return { success: false, autoCancel: true };
     }
+
+    return { success: true };
+  } catch (error) {
+    logger.error(`Error processing registered OBS reward ${rewardTitle}:`, error);
+    return { success: false, error };
   }
 };
 

@@ -18,6 +18,11 @@ contextBridge.exposeInMainWorld('desktopAPI', {
   runAudioTest: () => ipcRenderer.invoke('desktop:run-audio-test'),
   runAlertTest: (alertType) => ipcRenderer.invoke('desktop:run-alert-test', alertType),
   muteAudio: () => ipcRenderer.invoke('desktop:mute-audio'),
+  getObsStatus: () => ipcRenderer.invoke('desktop:get-obs-status'),
+  connectObs: () => ipcRenderer.invoke('desktop:connect-obs'),
+  getObsRewardMappings: () => ipcRenderer.invoke('desktop:get-obs-reward-mappings'),
+  registerObsRewardMapping: (payload) => ipcRenderer.invoke('desktop:register-obs-reward-mapping', payload),
+  removeObsRewardMapping: (rewardTitle) => ipcRenderer.invoke('desktop:remove-obs-reward-mapping', rewardTitle),
   onStateChanged: (listener) => {
     const wrapped = (_, state) => listener(state);
     ipcRenderer.on('desktop:state', wrapped);

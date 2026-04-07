@@ -13,6 +13,26 @@
       <p>Control local server, test overlays, and inspect diagnostics.</p>
     </header>
 
+    <section id="obsReconnectBanner" class="card obs-banner" hidden>
+      <div class="row obs-banner-row">
+        <div>
+          <strong>OBS WebSocket Disconnected</strong>
+          <p id="obsReconnectMessage" class="hint">Automatic retries were exhausted. Start OBS and reconnect manually.</p>
+        </div>
+        <button id="connectObsBtn" class="button button-primary">Connect OBS</button>
+      </div>
+    </section>
+
+    <section id="unconfiguredRewardBanner" class="card obs-banner" hidden>
+      <div class="row obs-banner-row">
+        <div>
+          <strong>Unconfigured Reward Redeemed</strong>
+          <p class="hint">At least one channel point reward was redeemed without an OBS mapping and was refunded.</p>
+        </div>
+      </div>
+      <div id="unconfiguredRewardList" class="obs-reward-list"></div>
+    </section>
+
     <section class="card">
       <div class="row">
         <span class="label">Server Status</span>
@@ -301,6 +321,63 @@
         <button id="quickOpenFullBtn" class="button">Open /full</button>
         <button id="quickCopyRoutesBtn" class="button">Copy Routes</button>
       </div>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <h2>OBS Video Reward Mappings</h2>
+        <button id="obsRewardRefreshBtn" class="button">Refresh</button>
+      </div>
+      <p class="hint">Map each Twitch channel point reward title to an OBS source so redemptions trigger your local video source.</p>
+
+      <details class="route-guide" open>
+        <summary>OBS Setup Checklist</summary>
+        <div class="guide-content">
+          <ol>
+            <li>In OBS, create a group named <strong>Channel Point Rewards</strong> (or keep your existing one with that exact name).</li>
+            <li>Add each reward video as a source inside that group (for example: Loser, Dumb Animal, Yipee).</li>
+            <li>For hybrid rewards, add both sources in OBS (for example GIF source + overlay source) and register both below.</li>
+            <li>Make sure each source name in OBS exactly matches the <strong>OBS Source Name</strong> values you register below.</li>
+            <li>Set each video source to hidden by default. The app will toggle it on for the duration, then off again.</li>
+            <li>If you want reward audio, place the mp3 in <strong>public/assets/audio</strong> and set the audio filename below (example: dumbanimal.mp3).</li>
+            <li>Create matching Twitch reward titles and register those exact titles below.</li>
+          </ol>
+        </div>
+      </details>
+
+      <div class="obs-reward-form">
+        <label class="checkbox">
+          <input id="obsRewardDurationRequiredToggle" type="checkbox" />
+          <span>Duration required (disable this to auto-end when media playback completes)</span>
+        </label>
+        <label>
+          Twitch Reward Title
+          <input id="obsRewardTitleInput" type="text" placeholder="Dumb Animal" />
+        </label>
+        <label>
+          OBS Source Name (Primary)
+          <input id="obsRewardSourceInput" type="text" placeholder="Dumb Animal GIF" />
+        </label>
+        <label>
+          Duration (Primary ms)
+          <input id="obsRewardDurationInput" type="number" min="250" step="250" value="4500" />
+        </label>
+        <label>
+          OBS Source Name (Secondary Optional)
+          <input id="obsRewardSource2Input" type="text" placeholder="Dumb Animal Overlay" />
+        </label>
+        <label>
+          Duration (Secondary ms)
+          <input id="obsRewardDuration2Input" type="number" min="250" step="250" value="4500" />
+        </label>
+        <label>
+          Audio File (Optional)
+          <input id="obsRewardAudioFileInput" type="text" placeholder="dumbanimal.mp3" />
+        </label>
+        <button id="obsRewardRegisterBtn" class="button button-primary">Register Mapping</button>
+      </div>
+
+      <div id="obsRewardMappingsList" class="obs-reward-list"></div>
     </section>
 
     <section class="card">
